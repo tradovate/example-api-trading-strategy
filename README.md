@@ -1,5 +1,6 @@
 # Tradobot
 > Still a WIP.
+
 Tradobot is a simple starting point for building an automated trading system using the Tradovate API. It is merely an example of how you _could_ perform automated trading, and not by any means trading strategy advice - DYOR. This software is primarily for educational purposes, but it lays the foundation for creating your own automated trading system. Feel free to clone or fork this repo for your own purposes.
 
 ## Motivation
