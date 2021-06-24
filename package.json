@@ -1,0 +1,17 @@
+{
+  "name": "tradobot",
+  "version": "1.0.0",
+  "description": "A simple starting point for building a trade bot with the Tradovate API.",
+  "main": "index.js",
+  "repository": "https://github.com/tradovate/tradobot",
+  "author": "Alexander Lennert",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+      "start": "node index.js"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "ws": "^7.5.0"
+  }
+}
