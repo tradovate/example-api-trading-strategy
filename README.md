@@ -18,4 +18,4 @@ Then you can run the robot:
 yarn start
 ```
 
-You'll be prompted to choose an account, then you'll need to pick a contract to monitor and setup some parameters. Once you have everything ready, the robot will begin monitoring the tick stream based on your configuration.
+You'll be prompted to choose an account, then you'll need to pick a contract to watch and setup some parameters. Once you have everything ready, the robot will begin monitoring the tick stream based on your configuration.

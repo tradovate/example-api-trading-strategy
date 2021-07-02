@@ -1,3 +1,5 @@
+const fs = require('fs')
+
 //if you don't use readline and call createInterface with the input and output streams, our input methods won't work...
 const readline = require('readline')
 const io = readline.createInterface({
@@ -5,10 +7,12 @@ const io = readline.createInterface({
     output: process.stdout
 })
 
-const waitForMs = ms => 
-    new Promise(res => {
+const waitForMs = ms => {
+    if(ms > 1000) console.log(`Waiting for ${ms/1000}s`)
+    return new Promise(res => {
         setTimeout(() => res(), ms)
     })
+}
 
 const waitUntil = async pred =>
     new Promise(async res => {
@@ -18,12 +22,30 @@ const waitUntil = async pred =>
         res()
     })
 
-const calculateSma = (period, data) => {
-    let sum = data.slice(data.length - period)
-        .reduce((a, b) => a + b.price, 0)
-
-    return sum/period
+async function readFile(filePath) {
+    try {
+        const data = await fs.readFile(filePath);
+        console.log(data.toString());
+    } catch (error) {
+        console.error(`Got an error trying to read the file: ${error.message}`);
+    }
 }
+
+const calculateSma = (period, data) => {
+    let s = sumBy('price', data.slice(data.length - period))
+    return s/period
+}
+
+const sum = data => data.reduce((a, b) => a + b, 0)
+
+const sumBy = (prop, data) => data.reduce((a, b) => {
+    let v = typeof b[prop] === 'function' 
+        ? b[prop]()
+        : b[prop]
+    return a + v
+}, 0)
+
+
 
 const KEYS = {
     ctrlC:  '03',
@@ -40,5 +62,7 @@ module.exports = {
     KEYS,
     readline,
     io,
-    calculateSma
+    calculateSma,
+    readFile,
+    sum, sumBy
 }

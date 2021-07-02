@@ -7,16 +7,20 @@ const drawQuestion = (choices, selected) => {
     console.log(`[Tradobot]: ${question}\n`)
     if(items) {
         Object.keys(items).forEach((k, i) => {
-            console.log(`  ${selected === i ? `> [${i}.] ` : `  [${i}.] `}${k}`)
+            console.log(`  ${selected === i ? `> [${i+1}.] ` : `  [${i+1}.] `}${k}`)
         })
     }
 }
 
+const badChars = [
+    '\u0008', ',', '.', '!', '#', '&', '%', '$', '^', '*', '(', ')', '-', '+'
+]
+
 function sanitize(input) {
     let output = ''
     for (let i = 0; i < input.length; i++) {
-        if (input.charCodeAt(i) <= 127) {
-            output += input.charAt(i)
+        if (input.charCodeAt(i) <= 127 && !badChars.includes(input[i])) {
+            output += input[i]
         }
     }
     return output

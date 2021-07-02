@@ -29,8 +29,8 @@ module.exports = async function requestAccessToken() {
         appId: 'Tradobot',
         appVersion: '1.0',
         deviceId,
-        cid: 8,
-        sec: 'f03741b6-f634-48d6-9308-c8fb871150c2'
+        cid: parseInt(process.env.CID, 10),
+        sec: process.env.SEC
     }
 
     const config = {
