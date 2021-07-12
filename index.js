@@ -1,7 +1,6 @@
 const { pressEnterToContinue } = require('./modules/enterToContinue')
 const { acquireAccess } = require('./modules/acquireAccess')
 const { configureRobot } = require('./modules/configureRobot')
-const { getHistory } = require('./modules/getHistory')
 const { waitUntil } = require('./modules/waitUntil')
 
 //ENVIRONMENT VARIABLES ---------------------------------------------------------------------------------------
@@ -14,13 +13,13 @@ const { waitUntil } = require('./modules/waitUntil')
 // - USER should be your username or email used for your Trader account
 // - PASS should be the password assoc with that account.
 
-process.env.HTTP_URL    = 'https://demo.tradovateapi.com/v1'
-process.env.WS_URL      = 'wss://demo.tradovateapi.com/v1/websocket'
-process.env.MD_URL      = 'wss://md.tradovateapi.com/v1/websocket'
-process.env.USER        = 'your username'    
-process.env.PASS        = 'your password' 
-process.env.SEC         = 'your key'
-process.env.CID         = 0 //your CID
+process.env.HTTP_URL    = 'https://demo-d.tradovateapi.com/v1'
+process.env.WS_URL      = 'wss://demo-d.tradovateapi.com/v1/websocket'
+process.env.MD_URL      = 'wss://md-d.tradovateapi.com/v1/websocket'
+process.env.USER        = 'alennert02'    
+process.env.PASS        = 'YumD00d24!' 
+process.env.SEC         = 'f03741b6-f634-48d6-9308-c8fb871150c2'
+process.env.CID         = 8
 
 //END ENVIRONMENT VARIABLES -----------------------------------------------------------------------------------
 
