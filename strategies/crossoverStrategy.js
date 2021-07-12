@@ -25,7 +25,6 @@ const socket = new TradovateSocket()
 const RobotMode = {
     Processing:  '[RobotMode] Processing',
     Watch:       '[RobotMode] Watch',
-    AwaitResult: '[RobotMode] AwaitResult'
 }
 
 const RobotAction = {
@@ -55,23 +54,6 @@ class CrossoverStrategy extends Strategy {
         super(params)
         this.mode = RobotMode.Watch
 
-        Promise.all([
-            socket.connect(process.env.WS_URL), 
-            mdSocket.connect(process.env.MD_URL)
-        ])
-        .then(() => socket.synchronize())
-        .then(res => {
-            //we want to have our user data pre-synchronized so we do it on init to get an initial snapshot       
-            this.props.userData = res
-            const { positions } = res
-            const { contract } = this.props
-            //this allows us to know things like our current net position
-            //however they can also be null if you have no current positions
-            //or no position with the contract in question.
-            let pos = positions?.find(p => p.contractId === contract.id)
-            this.props.position = pos?.netPos || 0 
-            this.initialized = true
-        })        
     }
     
     // // // // // // // // // // // // // // // //
@@ -91,13 +73,12 @@ class CrossoverStrategy extends Strategy {
                 return
             }
 
-            const {products, fills, positions, cashBalances} = userData
+            const {products, positions, cashBalances} = userData
 
             console.clear()    
             // console.log(this.props.userData)
             // console.log(JSON.stringify(data))
 
-            let currentDiff = shortSma - longSma
             let pl
             if(products && products.length !== 0) {
                 let pos = positions?.find(p => p.contractId === contract.id)
@@ -105,9 +86,6 @@ class CrossoverStrategy extends Strategy {
                 this.props.position = pos?.netPos || 0
 
                 if(pos) {
-                    // if(this.lastOrder) {
-                    //     lastPrice = fills.find(f => f.orderId === this.lastOrder.orderId)?.price || 0
-                    // }
     
                     const symbol = contract.name
     
@@ -158,7 +136,7 @@ class CrossoverStrategy extends Strategy {
         // // // // // // // // // // // // // // // //
 
         const makeDecision = (item) => {
-            const { price, longSma, midSma, shortSma, currentDiff, } = item
+            const { price, longSma, midSma, shortSma } = item
             
             drawWatchLoop(price, shortSma, midSma, longSma)
 
@@ -322,7 +300,7 @@ class CrossoverStrategy extends Strategy {
 
                         this.setMode(RobotMode.Watch)
 
-                        this.props.userData = await socket.synchronize()
+                        await this.updateUserData()
                     }  
                 }
             )
