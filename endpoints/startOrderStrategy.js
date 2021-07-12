@@ -1,4 +1,5 @@
-const axios = require('axios')
+const fs = require('fs')
+const { default: axios } = require('axios')
 const contractSuggest = require('./contractSuggest')
 
 /**
@@ -44,15 +45,21 @@ module.exports = async function startOrderStrategy(action, symbol, params) {
     }
 
     let body = {
-        accountId: process.env.ID,
+        accountId: parseInt(process.env.ID, 10),
         accountSpec: process.env.SPEC,
         symbol,
         action,
         orderStrategyTypeId: 2,
-        params
+        params,
     }
 
-    let result = await axios.post(URL, body, config)
+    let result
+    try {
+        result = await axios.post(URL, body, config)
+    } catch (err) {
+        await fs.writeFile('./dump.json', JSON.stringify(err, null, 2), {}, () => {}) 
+        throw err
+    }
 
     return result.data
 } 

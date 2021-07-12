@@ -1,17 +1,17 @@
 const contractSuggest = require("../endpoints/contractSuggest")
 const { CrossoverStrategy } = require("../strategies/crossoverStrategy")
-const { Strategy } = require("../strategies/strategy")
-const { waitUntil } = require("../utils")
+const { YourCustomStrategy } = require("../strategies/yourCustomStrategy")
 const { askQuestion } = require("./askQuestion")
 const { confirm } = require("./confirm")
 const { pressEnterToContinue } = require("./enterToContinue")
 
 
 /**
- * To add your own strategies, add a key which will be written 
+ * To add your own strategies, add your own keys and strategy objects. The key determines how the choice will be displayed in the menu.
  */
 const ALL_STRATEGIES = {
-    'Crossover Strategy': CrossoverStrategy
+    'Crossover Strategy': CrossoverStrategy,
+    'Your Custom Strategy': YourCustomStrategy
 }
 
 const configureRobot = async () => {
@@ -22,7 +22,7 @@ const configureRobot = async () => {
         const maybeContract = await askQuestion({
             question: 
                 failed ? `I couldn't find a contract with that name. Please enter another query.`
-                    : `First let's find a contract. Enter some text and I'll search for a contract.`
+                    : `Choose a contract to trade. Enter some text and I'll search for a contract.`
         })
         
         const foundContracts = await contractSuggest(maybeContract.toUpperCase())
@@ -31,7 +31,9 @@ const configureRobot = async () => {
         let choiceContract
 
         if(foundContracts && (foundContracts.name !== 'Error' || foundContracts.name !== "TypeError") && foundContracts.length > 0) {
+
             foundContracts.forEach(ct => contractItems[ct.name] = ct)
+            contractItems['Try another query...'] = null
             
             choiceContract = await askQuestion({
                 question: `I found these possible contracts`,

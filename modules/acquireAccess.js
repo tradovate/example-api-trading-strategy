@@ -28,6 +28,7 @@ const acquireAccess = async () => {
     process.env.ACCOUNT = JSON.stringify(account)
     process.env.ID = account.id,
     process.env.SPEC = account.name
+    process.env.USER_ID = account.userId
 
     console.clear()
     console.log(account)

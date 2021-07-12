@@ -1,34 +1,37 @@
 const fs = require('fs')
 const { pressEnterToContinue } = require("../modules/enterToContinue")
-const { calculateSma, sumBy, waitForMs, waitUntil } = require("../utils")
+const { calculateSma, sortByDate } = require("../utils")
 const { MarketDataSocket } = require("../websocket/MarketDataSocket")
 const { Strategy } = require("./strategy")
 const placeOrder = require('../endpoints/placeOrder')
-const { runInThisContext } = require('vm')
+const { TradovateSocket } = require("../websocket/TradovateSocket");
+const { waitUntil } = require('../modules/waitUntil')
+const startOrderStrategy = require('../endpoints/startOrderStrategy')
+
+
 
 // // // // // // // // // // // // // // // //
-// Instantiate a Market Data Socket          //
+// Instantiate WebSockets                    //
 // // // // // // // // // // // // // // // //
 
 /** Market Data Socket for gathering the real-time data */
 const mdSocket = new MarketDataSocket()
+/** Standard websocket for sync-ing user data */
+const socket = new TradovateSocket()
 
 // // // // // // // // // // // // // // // //
 // Define RobotMode + RobotAction Enums      //
 // // // // // // // // // // // // // // // //
-
-/** The Operation mode that the robot is in. If its last op was Buy, its next op will be Sell. */
 const RobotMode = {
-    Buy:  '[RobotMode] Buy',
-    Sell: '[RobotMode] Sell',
-    Wait: '[RobotMode] Wait'
+    Processing:  '[RobotMode] Processing',
+    Watch:       '[RobotMode] Watch',
+    AwaitResult: '[RobotMode] AwaitResult'
 }
 
-/** The Action for the robot to take. */
 const RobotAction = {
-    Buy: 'Buy',
-    Sell: 'Sell',
-    Wait: 'Wait'
+    Buy:        'Buy',
+    Sell:       'Sell',
+    Wait:       'Wait'
 }
 
 // // // // // // // // // // // // // // // //
@@ -40,11 +43,35 @@ const RobotAction = {
  */
 class CrossoverStrategy extends Strategy {
 
+    // // // // // // // // // // // // // // // //
+    // CrossoverStrategy Constructor             //
+    // // // // // // // // // // // // // // // //
+
+    /** 
+     * This is where we initialize the CrossoverStrategy class instance.
+     * We wait for our websockets to be connected and the set this.initialized to true so that our main loop can carry on (it waits on Strategy.initialized)
+     */
     constructor(params) {
         super(params)
-        this.mode      = RobotMode.Wait
-        this.lastOrder = null
-        this.inLoop = false
+        this.mode = RobotMode.Watch
+
+        Promise.all([
+            socket.connect(process.env.WS_URL), 
+            mdSocket.connect(process.env.MD_URL)
+        ])
+        .then(() => socket.synchronize())
+        .then(res => {
+            //we want to have our user data pre-synchronized so we do it on init to get an initial snapshot       
+            this.props.userData = res
+            const { positions } = res
+            const { contract } = this.props
+            //this allows us to know things like our current net position
+            //however they can also be null if you have no current positions
+            //or no position with the contract in question.
+            let pos = positions?.find(p => p.contractId === contract.id)
+            this.props.position = pos?.netPos || 0 
+            this.initialized = true
+        })        
     }
     
     // // // // // // // // // // // // // // // //
@@ -52,240 +79,272 @@ class CrossoverStrategy extends Strategy {
     // // // // // // // // // // // // // // // //
     
     async run() {
-        const { longPeriod, shortPeriod, barType, barInterval, contract, orderQuantity } = this.props
-        const data = []
-        // const averages = [] 
+        const { longPeriod, midPeriod, shortPeriod, barInterval, contract, orderQuantity, takeProfitThreshold, userData } = this.props
+        const data = [] 
 
-        // You don't have to do this drawing part - it's only to make it interactive for the example. However,
-        // logging is _highly encouraged_. When you've developed your own strategy and you actually 
-        // run the robot, you'll want backlogs to see exactly when and where you bought or sold 
-        // (Don't log on every tick of course! Just buys and sells)
-        const drawWatchLoop = (price, shortSma, longSma) => {
-            if(data.length === 0) {
+        // // // // // // // // // // // // // // // //
+        // Draw To Console Section                   // 
+        // // // // // // // // // // // // // // // //
+
+        const drawWatchLoop = (price, shortSma, midSma, longSma) => {
+            if(data.length > longPeriod) {
                 return
             }
+
+            const {products, fills, positions, cashBalances} = userData
+
             console.clear()    
-            console.log(this.props)
+            // console.log(this.props.userData)
+            // console.log(JSON.stringify(data))
 
             let currentDiff = shortSma - longSma
+            let pl
+            if(products && products.length !== 0) {
+                let pos = positions?.find(p => p.contractId === contract.id)
 
-            switch(this.mode) {
-                case RobotMode.Wait:
-                    console.log(`[TRADOBOT]: Watching for Buy or Sell signals...`)                    
-                    break
+                this.props.position = pos?.netPos || 0
 
-                case RobotMode.Buy:
-                    console.log(`[TRADOBOT]: Sold @ ${this.lastOrder.price}. Waiting to buy...`)
-                    break
-
-                case RobotMode.Sell:
-                    console.log(`[TRADOBOT]: Bought @ ${this.lastOrder.price}. Waiting to sell...`)
-                    break
+                if(pos) {
+                    // if(this.lastOrder) {
+                    //     lastPrice = fills.find(f => f.orderId === this.lastOrder.orderId)?.price || 0
+                    // }
+    
+                    const symbol = contract.name
+    
+                    let item = 
+                            products.find(p => p.name === symbol.slice(0, 3))   //contracts have variable
+                        ||  products.find(p => p.name === symbol.slice(0, 2))   //name lengths...this exppression
+                        ||  products.find(p => p.name === symbol.slice(0, 4))   //accounts for a few naming schemes
+            
+                    let vpp = item.valuePerPoint    
+            
+                    let buy = pos.netPrice ? pos.netPrice : pos.prevPrice
+    
+                    pl = (price - buy) * vpp * pos.netPos    
+                    this.props.pl = pl              
+                }
             }
 
-            console.log(`\n[${contract.name}](${barInterval}${barType === 'Tick' ? 't' : 'm'})\n`)
+            if(this.mode === RobotMode.Processing) {
+                console.log(`[Tradobot]: Signal noted. Processing order...`)
+            } else {
+                console.log(`[Tradobot]: Watching for Buy or Sell signals...`)                                    
+            }
+
+            let secondsLeft = 60 - new Date().getSeconds()
+            let minutesLeft = new Date().getMinutes() % barInterval
+            let displaySecs = secondsLeft < 10 ? '0'+secondsLeft : secondsLeft
+            let displayMins = minutesLeft < 10 ? '0'+minutesLeft : minutesLeft
+
+            console.log(`\n[${contract.name}](${barInterval}m) (${displayMins}:${displaySecs})\n`)
                 
             console.log(`\tprice:\t\t\t${price.toFixed(3)}`)
             
             console.log(`\tshort SMA (${shortPeriod}):\t\t${shortSma.toFixed(3)}`)
+            console.log(`\tshort SMA (${midPeriod}):\t\t${midSma.toFixed(3)}`)
             console.log(`\tlong SMA (${longPeriod}):\t\t${longSma.toFixed(3)}`)
     
-        
-            console.log(`\tcurr diff:\t\t${currentDiff.toFixed(3)}`)
+            console.log(`\topen P&L:\t\t${pl ? '$'+pl.toFixed(2) : '$0.00'}`)
+            console.log(`\tcurr pos:\t\t${this.props.position || 0}`)
+            console.log(`\trealized P&L:\t\t${
+                cashBalances && cashBalances[0].realizedPnL ? '$'+cashBalances[0].realizedPnL.toFixed(2) 
+            :                                                    'gathering data...'}`)
+            console.log(`\tequity:\t\t\t${cashBalances ? '$'+cashBalances[0].amount.toFixed(2) : 'gathering data...'}`)
         }
 
-        const writeOrder = async order => {
-            await fs.readFile('orders.json', async (err, buffer) => {
-                if(err) {
-                    console.error(err)
-                }
-                let data = ''
 
-                data += buffer.toString('utf-8')
+        // // // // // // // // // // // // // // // //
+        // Decision Loop                             //
+        // // // // // // // // // // // // // // // //
 
-                let json = JSON.parse(data)
-                json.orders.push(order)
-                await fs.writeFile('./orders.json', JSON.stringify(json), {}, () => {})
-            })
-        }
+        const makeDecision = (item) => {
+            const { price, longSma, midSma, shortSma, currentDiff, } = item
+            
+            drawWatchLoop(price, shortSma, midSma, longSma)
 
-        const makeDecision = async (item) => {
-            const { price, longSma, shortSma, currentDiff, timestamp } = item
-            if(
-                new Date().getTime() - new Date(timestamp).getTime() > 1000*60*30 
-                || new Date(timestamp).getTime() - new Date(data[data.length - 1].timestamp).getTime() < 1000*60
+            //buy signal
+            if( shortSma > midSma
+                //currentDiff is positive when short ma is greater than long ma
+                && midSma > longSma
+                //last data point should also be lower than most recent data pt
+                && data[data.length - 1].price > data[0].price 
             ) {
-                return
+                return RobotAction.Buy
             }
-            
-            drawWatchLoop(price, shortSma, longSma)
-            
-            switch(this.mode) {
-                case RobotMode.Wait:
-                    //buy signal
-                    if(
-                        shortSma > longSma
-                        && currentDiff > 0
-                        && sumBy('diff', data.slice(data.length - shortPeriod))/shortPeriod < 0 //currentDiff was negative, shift to pos
-                    ) {
-                        this.setMode(RobotMode.Sell)
-                        this.lastOrder = { price, timestamp }
-                        return RobotAction.Buy
-                    }
 
-                    //sell signal
-                    else if(
-                        shortSma > price 
-                        && longSma > price
-                        && currentDiff < 0
-                        && sumBy('diff', data.slice(data.length - shortPeriod))/shortPeriod > 0 //currentDiff was positive, shift to neg
-                    ) {
-                        this.setMode(RobotMode.Buy)
-                        this.lastOrder = { price, timestamp }
-                        return RobotAction.Sell
-                    }
-
-                    break
-
-                case RobotMode.Sell:
-                    //back-out
-
-                    //sell signal
-                    if(
-                        shortSma > price 
-                        && longSma > price
-                        && currentDiff < 0
-                        && sumBy('diff', data.slice(data.length - shortPeriod))/shortPeriod > 0 //currentDiff was positive, shift to neg
-                    ) {
-                        this.setMode(RobotMode.Buy)
-                        this.lastOrder = { price, timestamp }
-                        return RobotAction.Sell
-                    }
-
-                    break
-
-                case RobotMode.Buy:
-                    //back-out
-
-                    //buy signal
-                    if(
-                        shortSma > longSma
-                        && currentDiff > 0
-                        && sumBy('diff', data.slice(data.length - shortPeriod))/shortPeriod < 0 //currentDiff was negative, shift to pos
-                    ) {
-                        this.setMode(RobotMode.Sell)
-                        this.lastOrder = { price, timestamp }
-                        return RobotAction.Buy
-                    }
-
-                    break
+            //sell signal
+            else if(
+                shortSma < midSma
+                && shortSma < longSma
+                && price < shortSma
+                && data[data.length - 1].price < data[0].price
+            ) {
+                return RobotAction.Sell
             }
 
             return RobotAction.Wait
            
         }
+    
 
-        const tickHandler = async ({eoh, bt, bp, tks}) => {
-            tks.forEach(async ({t, p}) => {
-                const timestamp = bt + t
-                const price = bp + p
-    
-                data.push({ timestamp, price }) 
-    
-                const shortSma = calculateSma(shortPeriod, data)
-                const longSma = calculateSma(longPeriod, data)
-                const currentDiff = shortSma - longSma
-    
-                await checkSignals({ price, longSma, shortSma, currentDiff, timestamp })                
-            })
-        }
-        
-        const barHandler = async ({bars}) => {
-            bars.filter(bar => new Date(bar.timestamp) > new Date().getTime() - 1000*60*30) 
+        // // // // // // // // // // // // // // // //
+        // Run Strategy Section                      //
+        // // // // // // // // // // // // // // // //       
 
-                .forEach(async ({timestamp, close}) => {
-                
-                if( data.length < 1
-                    && (new Date(timestamp).getTime() < new Date().getTime() - 1000 * 60 * 30
-                    || new Date(timestamp).getTime() - new Date(data[data.length - 1]?.timestamp).getTime() < 1000*60)
-                ) {
-                    return
-                }
-                if(data.length === 0 || new Date(timestamp).getTime() > new Date(data[data.length-1].timestamp).getTime()) {
-                    let l = data.push({ timestamp, price: close })
-                    if(l > longPeriod) {
-                        data.shift()
-                    }
-                }
-                if(data.length < longPeriod) {
-                    return
-                }
-                data.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-                const shortSma = calculateSma(shortPeriod, data)
-                const longSma = calculateSma(longPeriod, data)
-                const currentDiff = shortSma - longSma
-                data[data.length - 1].diff = currentDiff        
-    
-                let decision = await makeDecision({ price: close, longSma, shortSma, currentDiff }) 
-
-                if(decision === RobotAction.Wait) return
-
-                else {
-                    const order = await placeOrder({
-                        action: decision,
-                        symbol: contract.name,
-                        orderQty: orderQuantity,
-                        orderType: 'Market',
-                    })
-                }
-            })
-        }
-    
-        console.log(`[Tradobot]: Connecting WebSocket...`)
-    
-        await mdSocket.connect(process.env.MD_URL)
-        const asFarAsTimestamp = new Date()
-        asFarAsTimestamp.setHours(new Date().getHours() - 1)
-
+        //we can use the MarketDataSocket's getChart function to request bar or tick data
         const dataSubscription = await mdSocket.getChart({
             symbol: contract.name, 
             chartDescription: {
-                underlyingType: barType,
-                elementSize: barType === 'Tick' ? 1 : barInterval,
+                underlyingType: 'MinuteBar',            
+                elementSize: barInterval,
                 elementSizeUnit: "UnderlyingUnits",
             },
             timeRange: {
-                // closestTimestamp: JSON.stringify(new Date(new Date().getTime() + 1000 * 60 * 60 * 24)),
-                // asFarAsTimestamp: JSON.stringify(asFarAsTimestamp),
                 asManyAsElements: longPeriod
             }
-        }, barType === 'Tick' ? tickHandler : barHandler)
-    
-    
-        // // // // // // // // // // // // // // // //
-        // Run Strategy Section                      //
-        // // // // // // // // // // // // // // // //
-    
-        await drawWatchLoop(0, 0, 0)
+        }, 
+        async ({bars}) => { 
+            //This is the callback function called for each response from the chart subscription. Data comes in the form of an
+            //array of bars, even if we only receive one - but keep in mind that we can receive more than one bar/tick at a time.
+            //We must encapsulate our logic in this callback function - including it in an async function outside of this callback
+            //would result in the logic herein being run multiple times. We want to run the process one single time per bar/tick
+            //so it is best to run any decision-making via this funtion.
+
+            bars.filter(bar => new Date(bar.timestamp) > new Date().getTime() - 1000*60*barInterval*longPeriod) //filter bars within longPeriod from now
+                .forEach(async ({timestamp, close}) => {
+                    
+                    //Filtering and Maintaining the Data Set:
+                    let inSameBar = false
+
+                    if( //  1) this bar's time is within your (barInterval * longPeriod) AND
+                        //  2) incoming data is a closed bar (will display live price, but calculates only on closes of your barInterval timeframe)
+                           new Date(timestamp).getTime() >= new Date().getTime() - 1000 * 60 * barInterval * longPeriod
+                    ) {                        
+                        let lastDiff = data[data.length - 1]?.diff || 0 
+
+                        if(data.length > 0 && timestamp === data[data.length - 1].timestamp) {
+                            inSameBar = true
+                            data.pop() //within the same minute, we will replace the most recent data so that live updates occur
+                        } else { inSameBar = false }
+
+                        //push data, conservatively keeping data within longPeriod size.
+                        let len = data.push({ timestamp, price: close })
+
+                        if(len > longPeriod) {
+                            while(data.length > longPeriod) {
+                                data.shift() //take data off of front of array - oldest data
+                            }
+                        }
+
+                        //return if we don't have a complete set of data yet, or we haven't gotten a new bar
+                        if(data.length < longPeriod) {
+                            return
+                        }                        
+                    }
+
+                    //If we've gotten to this point, then we have the data we need. There are calculations to be made!
+
+                    const shortSma = calculateSma(shortPeriod, data)    // get the two moving averages
+                    const midSma = calculateSma(midPeriod, data)
+                    const longSma = calculateSma(longPeriod, data)      // we can calculate the difference between the averages
+                    const currentDiff = shortSma - longSma              // as currentDiff. When the currentDiff goes from positive to negative, sell;
+                                                                        // when it goes from negative to positive, buy. These are the 'crossovers'.
+
+                    data[data.length - 1].diff = currentDiff            // we need this data...save it to the current (last) entry of the data array (this is the current bar)
+
+                    if(inSameBar) {
+                        drawWatchLoop(close, shortSma, midSma, longSma)
+                        return
+                    }
+                    
+                                    
+
+                    // this is where we ask the robot to try and make a decision. If it sees a crossover
+                    // it will try to buy or sell depending on the direction.
+                    let decision = makeDecision({ price: close, longSma, midSma, shortSma, currentDiff }) 
+
+                    if(decision === RobotAction.Wait) {
+                        return
+                    } else {
+                        //This helps ensure we only process a signal one time
+                        if(this.mode === RobotMode.Processing) {
+                            return
+                        } 
+                        //If we were processing it returns, if we weren't processing set the robot to processing,
+                        this.setMode(RobotMode.Processing)
+                        //then lock up the actual process
+
+                        const longBracket = {
+                            qty: orderQuantity,
+                            profitTarget: takeProfitThreshold,
+                            stopLoss: -(Math.ceil(takeProfitThreshold/5)),
+                            trailingStop: true
+                        }
+
+                        const shortBracket = {
+                            qty: orderQuantity,
+                            profitTarget: -takeProfitThreshold,
+                            stopLoss: (Math.floor(takeProfitThreshold/5)),
+                            trailingStop: true
+                        }
+
+                        const bracket = decision === RobotAction.Buy ? longBracket : shortBracket
+
+                        const orderData = {
+                            entryVersion: {
+                                orderQty: orderQuantity,
+                                orderType: 'Market',
+                            },
+                            brackets: [bracket]
+                        }
+
+                        const body = {
+                            accountId: parseInt(process.env.ID, 10),
+                            accountSpec: process.env.SPEC,
+                            symbol: contract.name,
+                            action: decision,
+                            orderStrategyTypeId: 2,
+                            params: JSON.stringify(orderData)
+                        }
+
+                        let order
+                        try {
+                            order = await socket.request({
+                                url: 'orderstrategy/startorderstrategy',
+                                body
+                            })
+                        } catch (err) {
+                            fs.writeFile('./dump.json', JSON.stringify(err, null, 2), () => {})
+                        }
+
+                        // await writeOrder(order)
+                        this.lastOrder = order                            
+
+                        this.setMode(RobotMode.Watch)
+
+                        this.props.userData = await socket.synchronize()
+                    }  
+                }
+            )
+        })
     
         await pressEnterToContinue('exit')
+        //if we get here, we know that the loop has been broken.
+        dataSubscription() //cancel subscription when the loop is broken to prevent memory leaks
     }
 
     setMode(nextMode) {
         this.mode = nextMode
     }
-
    
     static params = {
         ...super.params,
-        longPeriod: 'int',
-        shortPeriod: 'int',
-        barType: {
-            MinuteBar: 'MinuteBar',
-            Tick: 'Tick'
-        },
-        barInterval: 'int',
-        orderQuantity: 'int',
+        longPeriod:             'int',
+        midPeriod:              'int',
+        shortPeriod:            'int',
+        barInterval:            'int',
+        orderQuantity:          'int',
+        takeProfitThreshold:    'int'
 
     }
 }

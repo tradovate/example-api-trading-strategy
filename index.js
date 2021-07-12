@@ -1,9 +1,8 @@
 const { pressEnterToContinue } = require('./modules/enterToContinue')
 const { acquireAccess } = require('./modules/acquireAccess')
 const { configureRobot } = require('./modules/configureRobot')
-const fs = require('fs') .promises
-const { readFile } = require('./utils')
 const { getHistory } = require('./modules/getHistory')
+const { waitUntil } = require('./modules/waitUntil')
 
 //ENVIRONMENT VARIABLES ---------------------------------------------------------------------------------------
 
@@ -37,16 +36,12 @@ async function main() {
     await acquireAccess()
 
     // // // // // // // // // // // // // // // //
-    // Robot History                             //
-    // // // // // // // // // // // // // // // //
-
-    await getHistory()
-
-    // // // // // // // // // // // // // // // //
     // Configuration Section                     //
     // // // // // // // // // // // // // // // //
 
     const Strategy = await configureRobot()
+
+    waitUntil(() => Strategy.initialized)
 
     await pressEnterToContinue()
 

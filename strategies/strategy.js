@@ -2,11 +2,12 @@ const { pressEnterToContinue } = require("../modules/enterToContinue")
 
 class Strategy {
     constructor(props) {
+        this.initialized = false
         this.props = props
     }
 
     async run() {
-        console.log('Override me.')
+        console.log('Override me in yourCustomStrategy.js!')
         await pressEnterToContinue()
     }
 

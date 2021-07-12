@@ -7,21 +7,6 @@ const io = readline.createInterface({
     output: process.stdout
 })
 
-const waitForMs = ms => {
-    if(ms > 1000) console.log(`Waiting for ${ms/1000}s`)
-    return new Promise(res => {
-        setTimeout(() => res(), ms)
-    })
-}
-
-const waitUntil = async pred =>
-    new Promise(async res => {
-        while(!pred()) {
-            await waitForMs(100)
-        }
-        res()
-    })
-
 async function readFile(filePath) {
     try {
         const data = await fs.readFile(filePath);
@@ -45,6 +30,8 @@ const sumBy = (prop, data) => data.reduce((a, b) => {
     return a + v
 }, 0)
 
+const sortByDate = arr => arr.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).reverse()
+
 
 
 const KEYS = {
@@ -54,15 +41,15 @@ const KEYS = {
     down:   '1b5b42',
     right:  '1b5b43',
     left:   '1b5b44',
+    shift:  '21e7'
 }
 
 module.exports = {
-    waitForMs, 
-    waitUntil,
     KEYS,
     readline,
     io,
     calculateSma,
     readFile,
-    sum, sumBy
+    sum, sumBy,
+    sortByDate
 }

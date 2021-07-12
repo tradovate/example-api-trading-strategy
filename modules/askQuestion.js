@@ -1,4 +1,5 @@
-const { waitUntil, KEYS } = require("../utils")
+const { KEYS } = require("../utils")
+const { waitUntil } = require("./waitUntil")
 
 const drawQuestion = (choices, selected) => {
     const { question, items } = choices
@@ -13,7 +14,7 @@ const drawQuestion = (choices, selected) => {
 }
 
 const badChars = [
-    '\u0008', ',', '.', '!', '#', '&', '%', '$', '^', '*', '(', ')', '-', '+'
+    '\u0008', '\u21e7', ',', '.', '!', '#', '&', '%', '$', '^', '*', '(', ')', '-', '+'
 ]
 
 function sanitize(input) {

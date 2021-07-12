@@ -20,7 +20,7 @@ module.exports = async function requestAccessToken() {
             .update(process.env.USER)   //adds your tradovate username to the hash
             .digest('hex')              //creates a hash 'digest' - the result of the algo as a hex string
 
-    console.log(`[TRADOBOT]: Device <${deviceId}> detected.`)
+    console.log(`[Tradobot]: Device <${deviceId}> detected.`)
 
     //our authentication data...
     const data = {

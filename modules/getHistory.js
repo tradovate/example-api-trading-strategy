@@ -1,4 +1,4 @@
-const { readFile, waitUntil } = require("../utils")
+const { waitUntil } = require("../modules/waitUntil")
 const path = require('path')
 const fs = require('fs')
 const { pressEnterToContinue } = require("./enterToContinue")
@@ -7,6 +7,7 @@ const orderItem = require("../endpoints/orderItem")
 const getHistory = async () => {
     console.log(`[Tradobot] Order History:`)
     let gotHistory = false
+    let history = { orders: [] }
 
     await fs.readFile('orders.json', async (err, buffer) => {
         let file = ''
@@ -14,7 +15,7 @@ const getHistory = async () => {
             file += buffer.toString('utf-8')
         }
 
-        const history = JSON.parse(file)
+        history = JSON.parse(file)
 
         if(history.orders.length < 1) {
             console.log('[Tradobot]: No order history to show.')
@@ -23,7 +24,12 @@ const getHistory = async () => {
         } else {
             for(let i = 0; i < history.orders.length; i++) {
                 const { orderId } = history.orders[i]
-                const order = await orderItem(orderId)
+                let order
+                try {
+                    order = await orderItem(orderId)
+                } catch(err) {
+                    break
+                }
                 console.log(order)
                 // console.log(`${item.action === 'Buy' ? `Bought` : `Sold`} ${item.asset} @ ${item.price}.${item.lastPrice ? `Net change: ${item.lastItem.action === 'Buy' ? `${item.price - item.lastPrice}` : `${item.lastPrice - item.price}`}` : ''}`)
             }        
@@ -35,6 +41,8 @@ const getHistory = async () => {
 
 
     await waitUntil(() => gotHistory)
+
+    process.env.HISTORY = JSON.stringify(history)
 
 }
 

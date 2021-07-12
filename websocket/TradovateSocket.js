@@ -29,20 +29,20 @@ TradovateSocket.prototype.request = function({url, query, body}) {
     const promise = new Promise((res, rej) => {
         const resSubscription = msg => {
 
-            const rejSubscription = () => rej(`Connection closed before request ${id} could be resolved.`)
-            ws.addEventListener('close', rejSubscription)
-
             if(msg.data.slice(0, 1) !== 'a') { return }
             const data = JSON.parse(msg.data.slice(1))
 
+            let datas = []
             data.forEach(item => {
                 if(item.i === id) {
-                    res(item.d)
-                    ws.removeEventListener('close', rejSubscription)
                     ws.removeEventListener('message', resSubscription)
+                    res(item.d)
                 }
             })
+            // res(datas)
         } 
+        console.log(ws.listeners('message'))
+        console.log(ws.listeners('close'))
         ws.addEventListener('message', resSubscription)
     })
     this.ws.send(`${url}\n${id}\n${query}\n${JSON.stringify(body)}`)
@@ -54,17 +54,16 @@ TradovateSocket.prototype.synchronize = async function() {
         console.warn('no websocket connection available, please connect the websocket and try again.')
         return
     }
-    console.log(getAvailableAccounts()[0])
     return await this.request({
         url: 'user/syncrequest',
-        body: { users: [getAvailableAccounts()[0].userId] }
+        body: { users: [parseInt(process.env.USER_ID, 10)] }
     })
 }
 
 /**
  * Set a function to be called when the socket synchronizes.
  */
-TradovateSocket.prototype.onSync = function(callback) {
+TradovateSocket.prototype.onSync = function(callback, fields) {
     this.ws.addEventListener('message', async msg => {
         const { data } = msg
         const kind = data.slice(0,1)
@@ -72,18 +71,19 @@ TradovateSocket.prototype.onSync = function(callback) {
             case 'a':
                 const  [...parsedData] = JSON.parse(msg.data.slice(1))
                 // console.log(parsedData)
-                let schemaOk
-                const schemafields = ['accounts',]
+                let schemaOk = {}
+                const schemafields = fields || ['users']
                 parsedData.forEach(data => {
                     schemafields.forEach(k => {
                         if(schemaOk && !schemaOk.value) {
                             return
                         }
-                        if(k in data.d && Array.isArray(data.d[k])) {
+                        if(Object.keys(data.d).includes(k) && Array.isArray(data.d[k])) {
                             schemaOk = { value: true }
-                        } else {
-                            schemaOk = { value: false }
-                        }
+                        } 
+                        // else {
+                        //     schemaOk = { value: false }
+                        // }
                     })
                     
                     if(schemaOk.value) {
@@ -116,7 +116,7 @@ TradovateSocket.prototype.connect = async function(url) {
             //message discriminator
             switch(kind) {
                 case 'o':      
-                    console.log('Making WS auth request...')
+                    // console.log('Making WS auth request...')
                     const token = this.constructor.name === 'TradovateSocket' ? process.env.ACCESS_TOKEN : process.env.MD_ACCESS_TOKEN
                     this.ws.send(`authorize\n0\n\n${token}`)          
                     interval = setInterval(() => {
