@@ -40,11 +40,9 @@ class CrossoverStrategy extends Strategy {
         :   position && position.netPos < 0 ? RobotMode.Short
         :   /*else*/                          RobotMode.Watch
 
-        this.tickHlv = highLowVariance(this.props.variancePeriod)
-        this.hlv = this.tickHlv.init()
+        this.hlv = highLowVariance(this.props.variancePeriod)
 
-        this.tickTlc = twoLineCrossover(this.props.shortPeriod, this.props.longPeriod)
-        this.tlc = this.tickTlc.init()
+        this.tlc = twoLineCrossover(this.props.shortPeriod, this.props.longPeriod)
     }
     
     // // // // // // // // // // // // // // // //
@@ -60,9 +58,9 @@ class CrossoverStrategy extends Strategy {
         const data = buffer.getData()
 
         //run your module's tick handlers
-        const { positiveCrossover, negativeCrossover } = this.tlc = this.tickTlc(this.tlc, data)
+        const { positiveCrossover, negativeCrossover } = this.tlc(this.tlc.state, data).state
         
-        const { variance } = this.hlv = this.tickHlv(this.hlv, data)
+        const { variance } = this.hlv(this.hlv.state, data).state
 
         const { marketVarianceMinimum } = this.props
 
@@ -156,7 +154,7 @@ class CrossoverStrategy extends Strategy {
             callback: (id, r) => {
                 if(id === r.id) {
                     console.log('Started order strategy...')
-                    writeToLog(JSON.stringify(r)) 
+                    writeToLog(r) 
                     dispose()
                 }
             }

@@ -7,22 +7,27 @@ module.exports = function twoLineCrossover(shortPeriod, longPeriod) {
         const longSma = calculateSma(longPeriod, data)
         const distance = shortSma - longSma
 
-        return {
+        tickTlc.state = {
             longSma,
             shortSma,
             distance,
             positiveCrossover: distance > 0 && prevState.distance < 0,
             negativeCrossover: distance < 0 && prevState.distance > 0
-        }                
+        }         
+        return tickTlc       
     }
 
-    tickTlc.init = () => ({
-        shortSma: 0,
-        longSma: 0,
-        distance: 0,
-        positiveCrossover: false,
-        negativeCrossover: false,
-    })
+    tickTlc.init = () => {
+        tickTlc.state = {
+            shortSma: 0,
+            longSma: 0,
+            distance: 0,
+            positiveCrossover: false,
+            negativeCrossover: false,
+        }
+    }
+
+    tickTlc.init()
 
     return tickTlc
 }
