@@ -1,4 +1,4 @@
-const { KEYS } = require("../utils")
+const { KEYS } = require("../utils/helpers")
 const { waitUntil } = require("./waitUntil")
 
 const drawQuestion = (choices, selected) => {

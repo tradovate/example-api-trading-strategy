@@ -140,44 +140,45 @@ Array.prototype.tap = function(fn) {
     return this
 }
 
-MarketDataSocket.prototype.getChart = async function({symbol, chartDescription, timeRange}, fn) {
+MarketDataSocket.prototype.getChart = function({symbol, chartDescription, timeRange, callback}) {
 
-    const { realtimeId, historicalId } = await this.request({
+    let realtimeId, historicalId
+    
+    const subscription = this.request({
         url: 'md/getChart',
         body: {
             symbol,
             chartDescription,
             timeRange
-        }
-    })
+        },
+        callback: (id, item) => {
+            const isChart = data => data.e && data.e === 'chart'
 
-    const subscriber = msg => {
-        const results = getJSON(msg)
-        if(!results) return
-        // console.log(msg)
+            // console.log(item)
 
-        const isChart = data => data.e && data.e === 'chart'
-        results
-            .filter(isChart)
-            .map(data => data.d.charts)
-            .flat()
-            .filter(({id, eoh}) => !eoh && (id === realtimeId || id === historicalId))
-            // .tap(console.log)
-            .forEach(fn)
-    }
-
-    const subscription = () => {
-        this.ws.removeEventListener('message', subscriber)
-        this.request({
-            url: 'md/cancelChart',
-            body: {
-                subscriptionId: historicalId
+            if(item.i === id) {
+                realtimeId = item.d.realtimeId
+                historicalId = item.d.historicalId
             }
-        })
-    }
+            
+            if(!isChart(item)) return
 
-    this.ws.addEventListener('message', subscriber)
+            item.d.charts
+                .filter(({id}) => id === realtimeId || id === historicalId)
+                .forEach(callback)            
+        },
+        disposer: () => {
+            this.request({
+                url: 'md/cancelChart',
+                body: {
+                    subscriptionId: historicalId
+                }
+            })
+        },
+        once: false
+    })
     this.subscriptions.push({symbol, subscription})
+    
     return subscription
 }
 
@@ -187,4 +188,4 @@ MarketDataSocket.prototype.disconnect = function() {
     this.subscriptions = []
 }
 
-module.exports = { MarketDataSocket }
+module.exports = { MarketDataSocket } 

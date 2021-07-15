@@ -1,49 +1,11 @@
-const contractSuggest = require("../endpoints/contractSuggest")
-const { CrossoverStrategy } = require("../strategies/crossoverStrategy")
-const { YourCustomStrategy } = require("../strategies/yourCustomStrategy")
+const { askForContract } = require("./askForContract")
 const { askQuestion } = require("./askQuestion")
 const { confirm } = require("./confirm")
 const { pressEnterToContinue } = require("./enterToContinue")
 
+const configureRobot = async (ALL_STRATEGIES) => {
 
-/**
- * To add your own strategies, add your own keys and strategy objects. The key determines how the choice will be displayed in the menu.
- */
-const ALL_STRATEGIES = {
-    'Crossover Strategy': CrossoverStrategy,
-    'Your Custom Strategy': YourCustomStrategy
-}
-
-const configureRobot = async () => {
-
-    console.clear()
-
-    const askForContract = async (failed = false) => {
-        const maybeContract = await askQuestion({
-            question: 
-                failed ? `I couldn't find a contract with that name. Please enter another query.`
-                    : `Choose a contract to trade. Enter some text and I'll search for a contract.`
-        })
-        
-        const foundContracts = await contractSuggest(maybeContract.toUpperCase())
-
-        const contractItems = {}
-        let choiceContract
-
-        if(foundContracts && (foundContracts.name !== 'Error' || foundContracts.name !== "TypeError") && foundContracts.length > 0) {
-
-            foundContracts.forEach(ct => contractItems[ct.name] = ct)
-            contractItems['Try another query...'] = null
-            
-            choiceContract = await askQuestion({
-                question: `I found these possible contracts`,
-                items: contractItems
-            }) 
-
-            return choiceContract
-        }    
-        return null
-    }
+    console.clear()    
     
     let contract = await askForContract()
 
@@ -96,7 +58,7 @@ const configureRobot = async () => {
         }
 
         return await confirm(captured_params, async () => captured_params, getParams)
-    }
+    } 
 
     const params = await getParams()
     console.log(params)

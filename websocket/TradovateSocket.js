@@ -1,4 +1,6 @@
 const WebSocket = require('ws')
+const { writeToLog } = require('../utils/helpers')
+const { MarketDataSocket } = require('./MarketDataSocket')
 
 function Counter() {
     this.current = 0
@@ -21,81 +23,94 @@ TradovateSocket.prototype.getSocket = function() {
 }
 
 /**
- * Makes a request and returns a promise that will resolve with the response JSON data
+ * Sets up a request/response pairing that will call `callback` when the response is received. 
+ * This function will return a cancellable subscription in the form of a function with zero parameters
+ * that removes the event listener.
  */
-TradovateSocket.prototype.request = function({url, query, body}) {
-    const ws = this.ws
+TradovateSocket.prototype.request = function({url, query, body, callback, disposer}) {
     const id = this.counter.increment()
-    const promise = new Promise((res, rej) => {
-        const resSubscription = msg => {
+    const ws = this.ws
 
-            if(msg.data.slice(0, 1) !== 'a') { return }
-            const data = JSON.parse(msg.data.slice(1))
+    const resSubscription = msg => {
 
-            let datas = []
-            data.forEach(item => {
-                if(item.i === id) {
-                    ws.removeEventListener('message', resSubscription)
-                    res(item.d)
-                }
-            })
-            // res(datas)
-        } 
-        console.log(ws.listeners('message'))
-        console.log(ws.listeners('close'))
-        ws.addEventListener('message', resSubscription)
-    })
-    this.ws.send(`${url}\n${id}\n${query}\n${JSON.stringify(body)}`)
-    return promise
+        if(msg.data.slice(0, 1) !== 'a') { return }
+
+        const data = JSON.parse(msg.data.slice(1))
+
+        data.forEach(item => {
+            // console.log(item)
+            callback(id, item)
+        })
+    } 
+    // console.log(ws.listeners('message'))
+    // console.log(ws.listeners('close'))
+    ws.addEventListener('message', resSubscription)
+    ws.send(`${url}\n${id}\n${query}\n${JSON.stringify(body)}`)
+
+    return () => {
+        if(disposer && typeof disposer === 'function'){
+            disposer()
+        }
+        ws.removeListener('message', resSubscription)
+    }
 }
 
-TradovateSocket.prototype.synchronize = async function() {
+TradovateSocket.prototype.synchronize = async function(callback) {
     if(!this.ws || this.ws.readyState == 3 || this.ws.readyState == 2) {
         console.warn('no websocket connection available, please connect the websocket and try again.')
         return
     }
-    return await this.request({
+    this.request({
         url: 'user/syncrequest',
-        body: { users: [parseInt(process.env.USER_ID, 10)] }
-    })
-}
-
-/**
- * Set a function to be called when the socket synchronizes.
- */
-TradovateSocket.prototype.onSync = function(callback, fields) {
-    this.ws.addEventListener('message', async msg => {
-        const { data } = msg
-        const kind = data.slice(0,1)
-        switch(kind) {
-            case 'a':
-                const  [...parsedData] = JSON.parse(msg.data.slice(1))
-                // console.log(parsedData)
-                let schemaOk = {}
-                const schemafields = fields || ['users']
-                parsedData.forEach(data => {
-                    schemafields.forEach(k => {
-                        if(schemaOk && !schemaOk.value) {
-                            return
-                        }
-                        if(Object.keys(data.d).includes(k) && Array.isArray(data.d[k])) {
-                            schemaOk = { value: true }
-                        } 
-                        // else {
-                        //     schemaOk = { value: false }
-                        // }
-                    })
-                    
-                    if(schemaOk.value) {
-                        callback(data.d)
-                    }
-                })
-                break
-            default:
-                break
+        body: { users: [parseInt(process.env.USER_ID, 10)] },
+        callback: (id, data) => { 
+            // console.log(data)
+            if(data.d.users) {
+                callback(data.d)
+            }
+            if(data.e && data.e === 'props') {
+                callback(data.d)
+            }
         }
     })
 }
+
+// /**
+//  * Set a function to be called when the socket synchronizes.
+//  */
+// TradovateSocket.prototype.onSync = function(callback) {
+//     this.ws.addEventListener('message', async msg => {
+//         const { data } = msg
+//         const kind = data.slice(0,1)
+//         switch(kind) {
+//             case 'a':
+//                 const  parsedData = JSON.parse(msg.data.slice(1))
+//                 // console.log(parsedData)
+//                 let schemaOk = {}
+//                 const schemafields = ['users']
+//                 parsedData.forEach(data => {
+//                     schemafields.forEach(k => {
+//                         if(schemaOk && !schemaOk.value) {
+//                             return
+//                         }
+//                         if(Object.keys(data.d).includes(k) && Array.isArray(data.d[k])) {
+//                             schemaOk = { value: true }
+//                         } 
+//                         // else {
+//                         //     schemaOk = { value: false }
+//                         // }
+//                     })
+                    
+//                     if(schemaOk.value) {
+//                         callback(data.d)
+//                     }
+//                 })
+//                 break
+//             default:
+//                 break
+//         }
+//     })
+// }
 
 TradovateSocket.prototype.connect = async function(url) {
     if(!this.ws || this.ws.readyState == 3 || this.ws.readyState == 2) {
@@ -107,10 +122,22 @@ TradovateSocket.prototype.connect = async function(url) {
     return new Promise((res, rej) => {
         this.ws.addEventListener('message', async msg => {
             const { type, data } = msg
+
             const kind = data.slice(0,1)
             if(type !== 'message') {
                 console.log('non-message type received')
                 return
+            }
+
+            // console.log(msg)
+            
+            if(data.length > 1) {
+                let json = JSON.parse(data.slice(1))
+                json.forEach(d => {
+                    if(d.e !== 'chart') {
+                        console.log(d)
+                    }
+                })
             }
         
             //message discriminator

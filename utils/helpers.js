@@ -30,9 +30,24 @@ const sumBy = (prop, data) => data.reduce((a, b) => {
     return a + v
 }, 0)
 
-const sortByDate = arr => arr.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()).reverse()
+const writeToLog = async item => {
+    let log = ''
+    await fs.readFile('./log.json', {}, (err, buffer) => {
+        if(!err) {
+            log += buffer.toString('utf-8') || ''
+        }
+    })
 
+    let newLog
+    if(!log) {
+        newLog = [].push(item)
+    } else {
+        let json = JSON.parse(log)
+        newLog = json.push(item)
+    }
 
+    await fs.writeFile('./log.json', JSON.stringify(newLog, null, 2), {}, () => { console.log('Logged new message from WebSocket.')})
+}
 
 const KEYS = {
     ctrlC:  '03',
@@ -51,5 +66,5 @@ module.exports = {
     calculateSma,
     readFile,
     sum, sumBy,
-    sortByDate
+    writeToLog
 }

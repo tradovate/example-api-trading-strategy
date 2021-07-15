@@ -1,5 +1,6 @@
-const { KEYS, readline, io } = require("../utils")
-const { waitUntil } = require('../modules/waitUntil')
+const { KEYS, io, readline } = require("./helpers")
+const { waitUntil } = require("./waitUntil")
+
 
 const pressEnterToContinue = async (customText = 'continue') => {
     let pressedEnter = false
