@@ -45,31 +45,69 @@ async function main() {
     // Configuration Section                     //
     // // // // // // // // // // // // // // // //
 
-    const Strategy = await configureRobot(ALL_STRATEGIES)
+    // const Strategy = await configureRobot(ALL_STRATEGIES)
 
     //COMMENT ABOVE, UNCOMMENT BELOW you want to parameterize the strategy here instead of via console.
 
-    // let contract = await askForContract()
+    let contract1 = await askForContract()
 
-    // while(!contract) {
-    //     contract = await askForContract(true)
-    // }
+    while(!contract1) {
+        contract1 = await askForContract(true)
+    }
+
+    let contract2 = await askForContract()
+
+    while(!contract2) {
+        contract2 = await askForContract(true)
+    }
+
+    let contract3 = await askForContract()
     
-    // const strategy = new CrossoverStrategy({
-    //     contract,
-    //     barType: 'MinuteBar',
-    //     barInterval: 1,
-    //     elementSizeUnit: 'UnderlyingUnits',
-    //     histogram: false,
-    //     timeRangeType: 'asMuchAsElements',
-    //     timeRangeValue: 41,
-    //     longPeriod: 13,
-    //     shortPeriod: 5,
-    //     variancePeriod: 41,
-    //     orderQuantity: 10,
-    //     // takeProfitThreshold: 14,
-    //     // marketVarianceMinimum: 5,
-    // })
+    while(!contract3) {
+        contract3 = await askForContract(true)
+    }
+
+    const strategy1 = new CrossoverStrategy({
+        contract: contract1,
+        barType: 'MinuteBar',
+        barInterval: 1,
+        elementSizeUnit: 'UnderlyingUnits',
+        histogram: false,
+        timeRangeType: 'asMuchAsElements',
+        timeRangeValue: 41,
+        longPeriod: 13,
+        shortPeriod: 5,
+        variancePeriod: 41,
+        orderQuantity: 10
+    })
+
+    const strategy2 = new CrossoverStrategy({
+        contract: contract2,
+        barType: 'MinuteBar',
+        barInterval: 1,
+        elementSizeUnit: 'UnderlyingUnits',
+        histogram: false,
+        timeRangeType: 'asMuchAsElements',
+        timeRangeValue: 41,
+        longPeriod: 13,
+        shortPeriod: 5,
+        variancePeriod: 41,
+        orderQuantity: 10
+    })
+
+    const strategy3 = new CrossoverStrategy({
+        contract: contract3,
+        barType: 'MinuteBar',
+        barInterval: 1,
+        elementSizeUnit: 'UnderlyingUnits',
+        histogram: false,
+        timeRangeType: 'asMuchAsElements',
+        timeRangeValue: 41,
+        longPeriod: 13,
+        shortPeriod: 5,
+        variancePeriod: 41,
+        orderQuantity: 10
+    })
 }
 
 main()

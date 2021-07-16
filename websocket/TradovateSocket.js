@@ -1,6 +1,5 @@
 const WebSocket = require('ws')
 const { writeToLog } = require('../utils/helpers')
-const { MarketDataSocket } = require('./MarketDataSocket')
 
 function Counter() {
     this.current = 0
@@ -131,14 +130,14 @@ TradovateSocket.prototype.connect = async function(url) {
 
             // console.log(msg)
             
-            // if(data.length > 1) {
-            //     let json = JSON.parse(data.slice(1))
-            //     json.forEach(d => {
-            //         if(d.e !== 'chart') {
-            //             console.log(d)
-            //         }
-            //     })
-            // }
+            if(data.length > 1) {
+                let json = JSON.parse(data.slice(1))
+                json.forEach(d => {
+                    if(d.e !== 'chart') {
+                        console.log(d)
+                    }
+                })
+            }
         
             //message discriminator
             switch(kind) {

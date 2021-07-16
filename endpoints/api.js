@@ -1,28 +1,21 @@
 const { writeToLog } = require("../utils/helpers")
 
 const makeSocketApi = socket => ({
-    startOrderStrategy({contract, action, brackets, entryVersion}) {
 
-        //I'll be wanting this later...
-        // const longBracket = {
-        //     qty: orderQuantity,
-        //     profitTarget: takeProfitThreshold,
-        //     stopLoss: -(Math.floor(takeProfitThreshold/5)),
-        //     trailingStop: true
-        // }
-          
-        // const shortBracket = {
-        //     qty: orderQuantity,
-        //     profitTarget: -takeProfitThreshold,
-        //     stopLoss: (Math.ceil(takeProfitThreshold/5)),
-        //     trailingStop: true
-        // }
-        // const entry = {
-        //     orderQty: orderQuantity,
-        //     orderType: 'Market',
-        // },
-        
-        // const bracket = action === 'Buy' ? longBracket : shortBracket
+    productItem(contract, callback) {
+        let dispose = socket.request({
+            url: 'product/find',
+            query: contract.name,
+            callback: (id, r) => {
+                if(id === r.id) {
+                    callback(r)
+                    dispose()
+                }
+            }
+        })
+    },
+
+    startOrderStrategy({contract, action, brackets, entryVersion}) {
         
         const orderData = {
             entryVersion,

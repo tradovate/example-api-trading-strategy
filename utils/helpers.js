@@ -17,8 +17,8 @@ async function readFile(filePath) {
 }
 
 const calculateSma = (period, data) => {
-    let s = sumBy('price', data.slice(data.length - period))
-    return s/period
+    console.log('length:', data.length)
+    return sumBy('close', data.slice(data.length - period))/period
 }
 
 const sum = data => data.reduce((a, b) => a + b, 0)
@@ -30,9 +30,9 @@ const sumBy = (prop, data) => data.reduce((a, b) => {
     return a + v
 }, 0)
 
-const writeToLog = async item => {
+const writeToLog = item => {
     let log = ''
-    await fs.readFile('./log.json', {}, (err, buffer) => {
+    fs.readFile('./log.json', {}, (err, buffer) => {
         if(!err) {
             log += buffer.toString('utf-8') || ''
         }
@@ -46,7 +46,7 @@ const writeToLog = async item => {
         newLog = json.push(item)
     }
 
-    await fs.writeFile('./log.json', JSON.stringify(newLog, null, 2), {}, () => { console.log('Logged new message from WebSocket.')})
+    fs.writeFile('./log.json', JSON.stringify(newLog, null, 2), {}, () => { console.log('Logged new message from WebSocket.')})
 }
 
 const KEYS = {

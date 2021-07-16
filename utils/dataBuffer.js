@@ -47,7 +47,7 @@ function DataBuffer(transformer = null) {
     this.last = () => buffer[buffer.length - 1]
 }
 
-Object.defineProperty(DataBuffer, 'length', {
+Object.defineProperty(DataBuffer.prototype, 'length', {
     get() {
         return this.getData().length
     }

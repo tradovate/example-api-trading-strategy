@@ -1,4 +1,4 @@
-const calculatePnL = require("../modules/calculatePnL")
+const calculatePnL = require("../utils/calculatePnL")
 const highLowVariance = require("../modules/highLowVariance")
 const twoLineCrossover = require("../modules/twoLineCrossover")
 const { DataBuffer, BarsTransformer } = require("../utils/dataBuffer")
@@ -31,27 +31,30 @@ class CrossoverStrategy extends Strategy {
             tlc:        twoLineCrossover(props.shortPeriod, props.longPeriod),
             hlv:        highLowVariance(props.variancePeriod),
             product:    null,
-            position:   null
+            position:   null,
+            gotNeg:     false,
+            gotPos:     false,
         }
     }
     
     next(prevState, dependencies) {
         const { event, props } = dependencies  
         const { contract } = props
-        const { product, position, mode, buffer } = prevState
+        const { product, position, mode, buffer, gotPos, gotNeg } = prevState
 
-        if(product && position) {
-            drawToConsole({
-                mode,
-                netPos: position.netPos,
-                'p&l': `$${calculatePnL({
-                    price: buffer.last()?.close || buffer.last()?.price || 0,
-                    contract,
-                    position,
-                    product,
-                }).toFixed(2)}`
-            })
-        }
+        drawToConsole({
+            mode,
+            contract: contract.name,
+            gotPos: (mode === RobotMode.Long || gotPos) ? '!' : '',
+            gotNeg: (mode === RobotMode.Short || gotNeg) ? '!' : '',            
+            netPos: position?.netPos || 0,
+            'p&l': position ? `$${calculatePnL({
+                price: buffer.last()?.close || buffer.last()?.price || 0,
+                contract,
+                position,
+                product,
+            }).toFixed(2)}` : '$0.00'
+        })    
 
         switch(event) {
             case TdEvent.Chart: {
@@ -66,6 +69,13 @@ class CrossoverStrategy extends Strategy {
                 return this.onUserSync(prevState, dependencies)
             }
 
+            case 'response': {
+                return {
+                    ...prevState,
+                    product: data
+                }
+            }
+
             default: {
                 return prevState
             }
@@ -74,14 +84,20 @@ class CrossoverStrategy extends Strategy {
 
     onUserSync(prevState, {data, props, api}) {
 
-        const { contract }  = props
+        // console.log('got user sync')
+        // console.log(prevState)
+        const { contract } = props
         const { positions, products } = data
         
-        const product = products.find(p => contract.name.startsWith(p.name))
+        let product = products.find(p => contract.name.startsWith(p.name))
         const position = positions.find(pos => pos.contractId === contract.id)
 
         return {
             ...prevState,
+            mode: 
+                position && position.netPos > 0 ? RobotMode.Long 
+            :   position && position.netPos < 0 ? RobotMode.Short 
+            :   /*else*/                          RobotMode.Watch,
             product,
             position,
         }
@@ -89,7 +105,7 @@ class CrossoverStrategy extends Strategy {
     
     onProps(prevState, {data, props, api}) {
         const { eventType, entityType, entity } = data
-        const { product } = props
+        const { netPos } = entity
 
         if(entityType === 'position' && eventType === 'Updated') {
             return {
@@ -98,8 +114,7 @@ class CrossoverStrategy extends Strategy {
                     netPos > 0  ? RobotMode.Long
                 :   netPos < 0  ? RobotMode.Short
                 :   /*else*/      RobotMode.Watch,
-                position
-
+                position: entity
             }
         }
 
@@ -107,15 +122,17 @@ class CrossoverStrategy extends Strategy {
     }
 
     onChart(prevState, {data, props, api}) {
-        
+        // console.log('got chart')
+        // console.log(prevState)
         const { mode, buffer, hlv, tlc, } = prevState
         const { contract, orderQuantity } = props
         
         buffer.push(data)        
-
+        
+        // console.log(JSON.stringify(buffer.getData()))
         const { variance } = hlv(hlv.state, buffer).state
         const { negativeCrossover, positiveCrossover } = tlc(tlc.state, buffer).state
-        
+
         const longBracket = {
             qty: orderQuantity,
             profitTarget: variance,
@@ -145,6 +162,7 @@ class CrossoverStrategy extends Strategy {
                 })
                 return {
                     ...prevState,
+                    gotNeg: true,
                     mode: RobotMode.Short,
                 }
             }
@@ -157,12 +175,14 @@ class CrossoverStrategy extends Strategy {
                 })
                 return {
                     ...prevState,
+                    gotPos: true,
                     mode: RobotMode.Long,
                 }
             }
 
             return prevState            
         }
+        return prevState
     }
    
     static params = {
