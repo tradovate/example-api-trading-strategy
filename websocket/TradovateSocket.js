@@ -55,12 +55,12 @@ TradovateSocket.prototype.request = function({url, query, body, callback, dispos
     }
 }
 
-TradovateSocket.prototype.synchronize = async function(callback) {
+TradovateSocket.prototype.synchronize = function(callback) {
     if(!this.ws || this.ws.readyState == 3 || this.ws.readyState == 2) {
         console.warn('no websocket connection available, please connect the websocket and try again.')
         return
     }
-    this.request({
+    return this.request({
         url: 'user/syncrequest',
         body: { users: [parseInt(process.env.USER_ID, 10)] },
         callback: (id, data) => { 
@@ -131,14 +131,14 @@ TradovateSocket.prototype.connect = async function(url) {
 
             // console.log(msg)
             
-            if(data.length > 1) {
-                let json = JSON.parse(data.slice(1))
-                json.forEach(d => {
-                    if(d.e !== 'chart') {
-                        console.log(d)
-                    }
-                })
-            }
+            // if(data.length > 1) {
+            //     let json = JSON.parse(data.slice(1))
+            //     json.forEach(d => {
+            //         if(d.e !== 'chart') {
+            //             console.log(d)
+            //         }
+            //     })
+            // }
         
             //message discriminator
             switch(kind) {

@@ -21,7 +21,7 @@ module.exports = async function placeOCO({
 
     const oco = {
         accountSpec: process.env.SPEC,
-        accountId: process.env.ID,
+        accountId: parseInt(process.env.ID, 10),
         action,
         symbol,
         orderQty,

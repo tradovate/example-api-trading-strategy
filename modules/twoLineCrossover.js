@@ -1,24 +1,24 @@
 const { calculateSma } = require("../utils/helpers")
 
 module.exports = function twoLineCrossover(shortPeriod, longPeriod) {
-    function tickTlc(prevState, data) {
+    function nextTLC(prevState, data) {
 
         const shortSma = calculateSma(shortPeriod, data)
         const longSma = calculateSma(longPeriod, data)
         const distance = shortSma - longSma
 
-        tickTlc.state = {
+        nextTLC.state = {
             longSma,
             shortSma,
             distance,
             positiveCrossover: distance > 0 && prevState.distance < 0,
             negativeCrossover: distance < 0 && prevState.distance > 0
         }         
-        return tickTlc       
+        return nextTLC       
     }
 
-    tickTlc.init = () => {
-        tickTlc.state = {
+    nextTLC.init = () => {
+        nextTLC.state = {
             shortSma: 0,
             longSma: 0,
             distance: 0,
@@ -27,7 +27,7 @@ module.exports = function twoLineCrossover(shortPeriod, longPeriod) {
         }
     }
 
-    tickTlc.init()
+    nextTLC.init()
 
-    return tickTlc
+    return nextTLC
 }

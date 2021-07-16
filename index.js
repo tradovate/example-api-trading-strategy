@@ -15,13 +15,13 @@ const { askForContract } = require("./utils/askForContract")
 // - USER should be your username or email used for your Trader account
 // - PASS should be the password assoc with that account
 
-process.env.HTTP_URL    = 'https://demo-d.tradovateapi.com/v1'
-process.env.WS_URL      = 'wss://demo-d.tradovateapi.com/v1/websocket'
-process.env.MD_URL      = 'wss://md-d.tradovateapi.com/v1/websocket'
-process.env.USER        = 'alennert02'    
-process.env.PASS        = 'YumD00d24!' 
-process.env.SEC         = 'f03741b6-f634-48d6-9308-c8fb871150c2'
-process.env.CID         = 8
+process.env.HTTP_URL    = 'https://demo.tradovateapi.com/v1'
+process.env.WS_URL      = 'wss://demo.tradovateapi.com/v1/websocket'
+process.env.MD_URL      = 'wss://md.tradovateapi.com/v1/websocket'
+process.env.USER        = ''    
+process.env.PASS        = '' 
+process.env.SEC         = ''
+process.env.CID         = 0
 
 //END ENVIRONMENT VARIABLES -----------------------------------------------------------------------------------
 
@@ -29,8 +29,6 @@ const ALL_STRATEGIES = {
     'Crossover Strategy': CrossoverStrategy,
     'Your Custom Strategy': YourCustomStrategy
 }
-
-
 
 /**
  * Program entry point.
@@ -47,31 +45,31 @@ async function main() {
     // Configuration Section                     //
     // // // // // // // // // // // // // // // //
 
-    // const Strategy = await configureRobot(ALL_STRATEGIES)
+    const Strategy = await configureRobot(ALL_STRATEGIES)
 
     //COMMENT ABOVE, UNCOMMENT BELOW you want to parameterize the strategy here instead of via console.
 
-    const contract = await askForContract()
+    // let contract = await askForContract()
 
-    while(!contract) {
-        contract = await askForContract(true)
-    }
+    // while(!contract) {
+    //     contract = await askForContract(true)
+    // }
     
-    const strategy = new CrossoverStrategy({
-        contract,
-        barType: 'MinuteBar',
-        barInterval: 1,
-        elementSizeUnit: 'UnderlyingUnits',
-        histogram: false,
-        timeRangeType: 'asMuchAsElements',
-        timeRangeValue: 41,
-        longPeriod: 13,
-        shortPeriod: 5,
-        variancePeriod: 41,
-        orderQuantity: 10,
-        takeProfitThreshold: 14,
-        marketVarianceMinimum: 5,
-    })
+    // const strategy = new CrossoverStrategy({
+    //     contract,
+    //     barType: 'MinuteBar',
+    //     barInterval: 1,
+    //     elementSizeUnit: 'UnderlyingUnits',
+    //     histogram: false,
+    //     timeRangeType: 'asMuchAsElements',
+    //     timeRangeValue: 41,
+    //     longPeriod: 13,
+    //     shortPeriod: 5,
+    //     variancePeriod: 41,
+    //     orderQuantity: 10,
+    //     // takeProfitThreshold: 14,
+    //     // marketVarianceMinimum: 5,
+    // })
 }
 
 main()

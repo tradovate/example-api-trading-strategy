@@ -16,131 +16,111 @@ function MarketDataSocket() {
 //MarketDataSocket extends TradovateSocket, clone its prototype using Object.assign
 MarketDataSocket.prototype = Object.assign({}, TradovateSocket.prototype)
 
-MarketDataSocket.prototype.subscribeQuote = async function(symbol, fn) {
-
-    const { subscriptionId } = await this.request({
-        url: 'md/subscribeQuote',
-        body: { symbol }
-    })
-
-    const subscriber = msg => {
-        const results = getJSON(msg)
-        if(!results) return      
-
-        const isQuote = data => data.e && data.d && data.d.quotes
-
-        results
-            .filter(isQuote)                                //we only want Quote events
-            .map(data => data.d.quotes)                     //transform our data into the quotes object
-            .flat()                                         //its an array of arrays of quotes right now, so flatten
-            .filter(({id}) => id === subscriptionId)        //filter out subscriptions that aren't this one
-            .forEach(({entries, timestamp}) => fn(entries, timestamp))            //finally call the function
-
-    }
-
-    //listen for events
-    this.ws.addEventListener('message', subscriber)
-
-    //return an unsubscribe function.
-    const subscription = () => {
-        this.ws.removeEventListener('message', subscriber)
-        this.request({
-            url: 'md/unsubscribeQuote',
-            body: { symbol }
-        })
-    }
-
-    this.subscriptions.push({ symbol, subscription })
-    return subscription
-}
 
 MarketDataSocket.prototype.unsubscribe = function(symbol) {
-    const maybeSub = this.subscriptions.find(sub => sub.symbol === symbol)
-    if(!maybeSub) return
-
-    const { subscription } = maybeSub
-
-    console.log(`Closing subscription to ${symbol}.`)
-    this.subscriptions.splice(this.subscriptions.indexOf(maybeSub), 1)
-    subscription()
+    this.subscriptions
+        .filter(sub => sub.symbol === symbol)
+        .forEach(({ subscription }, i) => {
+            console.log(`Closing subscription to ${symbol}.`)
+            this.subscriptions.splice(this.subscriptions.indexOf(this.subscriptions[i]), 1)
+            subscription()
+        })    
 }
 
+MarketDataSocket.prototype.subscribeQuote = function({symbol, contractId: cid, callback}) {
 
-MarketDataSocket.prototype.subscribeDOM = async function(symbol, fn) {
-    const { subscriptionId } = await this.request({
-        url: 'md/subscribeDOM',
-        body: { symbol }
-    })   
+    const isQuote = data => data.e && data.e === 'md' && data.d && data.d.quotes
 
-    
-    const subscriber = msg => {
-        const results = getJSON(msg)
-        if(!results) return
+    const subscription = this.request({
+        url: 'md/subscribeQuote',
+        body: { symbol },
+        callback: (id, item) => {
+            if(!isQuote(item)) return
 
-        const isDOM = data => data.e && data.d && data.d.doms
+            item.d.quotes
+                .filter(({contractId}) => contractId === cid)
+                .forEach(callback)
 
-        results
-            .filter(isDOM)
-            .map(data => data.d.doms)
-            .flat()
-            .filter(({contractId}) => subscriptionId === contractId)
-            .forEach(dom => fn(dom))
-    }
-
-    this.ws.addEventListener('message', subscriber)
-
-    const subscription = () => {
-        this.ws.removeEventListener('message', subscriber)
-        this.request({
-            url: 'md/unsubscribeDOM',
-            body: { symbol }
-        })
-    }
-
-    this.subscriptions.push({symbol, subscription})
-    return subscription
-
-}
-
-MarketDataSocket.prototype.subscribeHistorgram = async function(symbol, fn) {
-    const { subscriptionId } = await this.request({
-        url:  'md/subscribeHistogram',
-        body: { symbol }
+        },
+        disposer: () => {
+            let d = this.request({
+                url: 'md/unsubscribeQuote',
+                body: {
+                    symbol
+                }
+            })
+            d()
+        },
     })
 
-    const isHistogram = data => data.e && data.d && data.d.histograms
-
-    const subscriber = msg => {
-        const results = getJSON(msg)
-        if(!results) return
-
-        results
-            .filter(isHistogram)
-            .map(data => data.d.histograms)
-            .flat()
-            .filter(({contractId}) => contractId === subscriptionId)
-            .forEach(hist => fn(hist))
-    }
-
-    const subscription = () => {
-        this.ws.removeEventListener('message', subscriber)
-        this.request({
-            url: 'md/unsubscribeHistogram',
-            body: { symbol }
-        })
-    }
-    
-    this.ws.addEventListener('message', subscriber)
     this.subscriptions.push({ symbol, subscription })
     return subscription
 }
 
-Array.prototype.tap = function(fn) {
-    this.forEach(fn)
-    return this
+MarketDataSocket.prototype.subscribeDOM = function({symbol, contractId: cid, callback}) {
+    const isDom = data => data.e && data.e === 'md' && data.d && data.d.doms
+
+    const subscription = this.request({
+        url:  'md/subscribeDOM',
+        body: { symbol },
+        callback: (id, item) => {            
+
+            if(!isDom(item)) return
+        
+            item.d.doms
+                .filter(({contractId}) => contractId === cid)
+                .forEach(callback)         
+        },
+        disposer: () => {
+            let d = this.request({
+                url: 'md/unsubscribeDOM',
+                body: {
+                    symbol
+                }
+            })
+            d()
+        },
+    })
+    
+    this.subscriptions.push({ symbol, subscription })
+
+    return subscription
+        
 }
 
+MarketDataSocket.prototype.subscribeHistorgram = function({symbol, contractId: cid, callback}) {
+    const isHistogram = data => data.e && data.e === 'md' && data.d && data.d.histograms
+
+    const subscription = this.request({
+        url:  'md/subscribeHistogram',
+        body: { symbol },
+        callback: (id, item) => {            
+
+            if(!isHistogram(item)) return
+        
+            item.d.histograms
+                .filter(({contractId}) => contractId === cid )
+                .forEach(callback)          
+        },
+        disposer: () => {
+            let d = this.request({
+                url: 'md/unsubscribeHistogram',
+                body: {
+                    symbol
+                }
+            })
+            d()
+        },
+    })
+    
+    this.subscriptions.push({ symbol, subscription })
+
+    return subscription
+}
+
+
 MarketDataSocket.prototype.getChart = function({symbol, chartDescription, timeRange, callback}) {
+    const isChart = data => data.e && data.e === 'chart'
 
     let realtimeId, historicalId
     
@@ -152,9 +132,6 @@ MarketDataSocket.prototype.getChart = function({symbol, chartDescription, timeRa
             timeRange
         },
         callback: (id, item) => {
-            const isChart = data => data.e && data.e === 'chart'
-
-            // console.log(item)
 
             if(item.i === id) {
                 realtimeId = item.d.realtimeId
@@ -168,12 +145,13 @@ MarketDataSocket.prototype.getChart = function({symbol, chartDescription, timeRa
                 .forEach(callback)            
         },
         disposer: () => {
-            this.request({
+            let d = this.request({
                 url: 'md/cancelChart',
                 body: {
                     subscriptionId: historicalId
                 }
             })
+            d()
         },
         once: false
     })
@@ -186,6 +164,11 @@ MarketDataSocket.prototype.disconnect = function() {
     TradovateSocket.prototype.disconnect.call(this)
     this.subscriptions.forEach(({subscription}) => subscription())
     this.subscriptions = []
+}
+
+Array.prototype.tap = function(fn) {
+    this.forEach(fn)
+    return this
 }
 
 module.exports = { MarketDataSocket } 

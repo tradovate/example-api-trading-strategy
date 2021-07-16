@@ -1,109 +1,69 @@
+const calculatePnL = require("../modules/calculatePnL")
 const highLowVariance = require("../modules/highLowVariance")
 const twoLineCrossover = require("../modules/twoLineCrossover")
-const { calculateSma, sumBy, writeToLog } = require("../utils/helpers")
-const { Strategy } = require("./strategy")
+const { DataBuffer, BarsTransformer } = require("../utils/dataBuffer")
+const drawToConsole = require("../utils/drawToConsole")
+const { Strategy, TdEvent } = require("./strategy")
 
-
-// // // // // // // // // // // // // // // //
-// Define RobotMode Enums                    //
-// // // // // // // // // // // // // // // //
 const RobotMode = {
     Long:       '[RobotMode] Long',
     Short:      '[RobotMode] Short', 
     Watch:      '[RobotMode] Watch',
 }
 
-
-// // // // // // // // // // // // // // // //
-// CrossoverStrategy Class                   //
-// // // // // // // // // // // // // // // //
-
 /**
  * A Simple Strategy based on two Moving Averages and their interactions.
  */
 class CrossoverStrategy extends Strategy {
-
-    // // // // // // // // // // // // // // // //
-    // CrossoverStrategy Constructor             //
-    // // // // // // // // // // // // // // // //
 
     /** 
      * This is where we initialize the CrossoverStrategy class instance.
      * We wait for our websockets to be connected and the set this.initialized to true so that our main loop can carry on (it waits on Strategy.initialized)
      */
     constructor(props) {
-        super(props)
-        //set the default state, this can actually be anything but a string will suffice for crossover
-        let position = this.getPosition()
-        this.state =
-            position && position.netPos > 0 ? RobotMode.Long 
-        :   position && position.netPos < 0 ? RobotMode.Short
-        :   /*else*/                          RobotMode.Watch
+        super(props)        
+    }
 
-        this.hlv = highLowVariance(this.props.variancePeriod)
-
-        this.tlc = twoLineCrossover(this.props.shortPeriod, this.props.longPeriod)
+    init(props) {
+        return {
+            mode:       RobotMode.Watch,
+            buffer:     new DataBuffer(BarsTransformer),
+            tlc:        twoLineCrossover(props.shortPeriod, props.longPeriod),
+            hlv:        highLowVariance(props.variancePeriod),
+            product:    null,
+            position:   null
+        }
     }
     
-    // // // // // // // // // // // // // // // //
-    // Strategy Tick Handler                     //
-    // // // // // // // // // // // // // // // //
-    
-    tick(prevState, tickData) {
-        //Must make a call to super.tick! (Unless you want to override how the default DataBuffer works)
-        super.tick(prevState, tickData)       
+    next(prevState, dependencies) {
+        const { event, props } = dependencies  
+        const { contract } = props
+        const { product, position, mode, buffer } = prevState
 
-        const { buffer } = this //the buffer is the transformed, usable data from your tick stream.
+        if(product && position) {
+            drawToConsole({
+                mode,
+                netPos: position.netPos,
+                'p&l': `$${calculatePnL({
+                    price: buffer.last()?.close || buffer.last()?.price || 0,
+                    contract,
+                    position,
+                    product,
+                }).toFixed(2)}`
+            })
+        }
 
-        const data = buffer.getData()
-
-        //run your module's tick handlers
-        const { positiveCrossover, negativeCrossover } = this.tlc(this.tlc.state, data).state
-        
-        const { variance } = this.hlv(this.hlv.state, data).state
-
-        const { marketVarianceMinimum } = this.props
-
-        const position = this.getPosition() //returns current position for this contract, if any (you may not have traded this contract yet)
-
-        console.clear()
-        console.log(`state:\t\t\t${this.state}`)
-        console.log(`variance:\t\t${variance}`)
-        console.log(`position:\t\t${position?.netPos || 0}`)
-        console.log(`open P&L:\t\t$${this.getOpenPnL(buffer.last().price).toFixed(2)}`)
-        console.log(`realized P&L:\t\t$${this.props.userData.cashBalances[0]?.realizedPnL || 0}`)
-
-        switch(prevState) {
-            case RobotMode.Watch: {
-                if(negativeCrossover && variance > marketVarianceMinimum) {
-                    this.startStrategy('Sell')
-                    return RobotMode.Short
-                }
-                else if(positiveCrossover && variance > marketVarianceMinimum) {
-                    this.startStrategy('Buy')
-                    return RobotMode.Long
-                }
-                else {
-                    return RobotMode.Watch
-                }
+        switch(event) {
+            case TdEvent.Chart: {
+                return this.onChart(prevState, dependencies)
             }
 
-            case RobotMode.Long: {
-                if(position && position.netPos === 0) {
-                    return RobotMode.Watch
-                }
-                else {
-                    return RobotMode.Long
-                }    
+            case TdEvent.Props: {
+                return this.onProps(prevState, dependencies)
             }
 
-            case RobotMode.Short: {
-                if(position && position.netPos === 0) {
-                    return RobotMode.Watch
-                }
-                else {
-                    return RobotMode.Short
-                }    
+            case TdEvent.UserSync: {
+                return this.onUserSync(prevState, dependencies)
             }
 
             default: {
@@ -112,53 +72,97 @@ class CrossoverStrategy extends Strategy {
         }
     }
 
-    startStrategy(buyOrSell) {
-        const { takeProfitThreshold, orderQuantity, contract } = this.props
+    onUserSync(prevState, {data, props, api}) {
 
+        const { contract }  = props
+        const { positions, products } = data
+        
+        const product = products.find(p => contract.name.startsWith(p.name))
+        const position = positions.find(pos => pos.contractId === contract.id)
+
+        return {
+            ...prevState,
+            product,
+            position,
+        }
+    }
+    
+    onProps(prevState, {data, props, api}) {
+        const { eventType, entityType, entity } = data
+        const { product } = props
+
+        if(entityType === 'position' && eventType === 'Updated') {
+            return {
+                ...prevState,
+                mode: 
+                    netPos > 0  ? RobotMode.Long
+                :   netPos < 0  ? RobotMode.Short
+                :   /*else*/      RobotMode.Watch,
+                position
+
+            }
+        }
+
+        return prevState
+    }
+
+    onChart(prevState, {data, props, api}) {
+        
+        const { mode, buffer, hlv, tlc, } = prevState
+        const { contract, orderQuantity } = props
+        
+        buffer.push(data)        
+
+        const { variance } = hlv(hlv.state, buffer).state
+        const { negativeCrossover, positiveCrossover } = tlc(tlc.state, buffer).state
+        
         const longBracket = {
             qty: orderQuantity,
-            profitTarget: takeProfitThreshold,
-            stopLoss: -(Math.floor(takeProfitThreshold/5)),
+            profitTarget: variance,
+            stopLoss: -(Math.floor(variance/6)),
             trailingStop: true
         }
           
         const shortBracket = {
             qty: orderQuantity,
-            profitTarget: -takeProfitThreshold,
-            stopLoss: (Math.ceil(takeProfitThreshold/5)),
+            profitTarget: -variance,
+            stopLoss: (Math.ceil(variance/6)),
             trailingStop: true
         }
-        
-        const bracket = buyOrSell === 'Buy' ? longBracket : shortBracket
-        
-        const orderData = {
-            entryVersion: {
-                orderQty: orderQuantity,
-                orderType: 'Market',
-            },
-            brackets: [bracket]
-        }
-        
-        const body = {
-            accountId: parseInt(process.env.ID, 10),
-            accountSpec: process.env.SPEC,
-            symbol: contract.name,
-            action: buyOrSell,
-            orderStrategyTypeId: 2,
-            params: JSON.stringify(orderData)
-        }
 
-        let dispose = this.socket.request({
-            url: 'orderStrategy/startOrderStrategy',
-            body,
-            callback: (id, r) => {
-                if(id === r.id) {
-                    console.log('Started order strategy...')
-                    writeToLog(r) 
-                    dispose()
+        const entryVersion = {
+            orderQty: orderQuantity,
+            orderType: 'Market',
+        }
+        
+        if(mode === RobotMode.Watch) {
+            if(negativeCrossover) {
+                api.startOrderStrategy({
+                    contract,
+                    action: 'Sell',
+                    brackets: [shortBracket],
+                    entryVersion
+                })
+                return {
+                    ...prevState,
+                    mode: RobotMode.Short,
                 }
             }
-        })
+            else if(positiveCrossover) {
+                api.startOrderStrategy({
+                    contract,
+                    action: 'Buy',
+                    brackets: [longBracket],
+                    entryVersion
+                })
+                return {
+                    ...prevState,
+                    mode: RobotMode.Long,
+                }
+            }
+
+            return prevState            
+        }
     }
    
     static params = {
@@ -167,10 +171,9 @@ class CrossoverStrategy extends Strategy {
         shortPeriod:            'int',
         variancePeriod:         'int',
         orderQuantity:          'int',
-        takeProfitThreshold:    'float',
-        marketVarianceMinimum:  'float'
-
     }
 }
+
+
 
 module.exports = { CrossoverStrategy }

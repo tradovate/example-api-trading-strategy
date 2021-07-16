@@ -6,21 +6,20 @@ class YourCustomStrategy extends Strategy {
     // Constructor - Initialization              //
     // // // // // // // // // // // // // // // //
 
+    /**
+     * 
+     * @param {this.params} params 
+     */
     constructor(params) {
         super(params)	
-        //you can place initialization logic here.
-        const { socket, mdSocket } = this   //We can access initialized websockets here.
     }		
 
     // // // // // // // // // // // // // // // //
     // The Buy/Sell Cycle                        //
     // // // // // // // // // // // // // // // //
 
-    tick(prevState, data) {
-        super.tick(prevState, data)
-        const { buffer } = this             //our data buffer.
-        const { userData } = this.props     //our props are available here
-        
+    next(state, {event, data, props, api}) {
+        super.next(state, {event, data, props, api})
     }
 
     // // // // // // // // // // // // // // // //

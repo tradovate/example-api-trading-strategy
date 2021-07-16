@@ -1,55 +1,80 @@
+const { makeSocketApi } = require("../endpoints/api")
 const { BarsTransformer, DataBuffer, TicksTransformer } = require("../utils/dataBuffer")
 const { MarketDataSocket } = require("../websocket/MarketDataSocket")
 const { TradovateSocket } = require("../websocket/TradovateSocket")
 
+const TdEvent = {
+    DOM:        'dom',
+    UserSync:   'usersyncinit',
+    Quote:      'quote',
+    Chart:      'chart',
+    Props:      'props',
+    Histogram:  'histogram'
+}
+
 class Strategy {
     constructor(props) {
+        const socket = new TradovateSocket()
+        const mdSocket = new MarketDataSocket()
+
+        const api = makeSocketApi(socket)
+
+        const { barType, barInterval, contract, elementSizeUnit, timeRangeType, timeRangeValue, histogram } = props
 
         let self = this
+        let state = this.init(props)
 
-        this.socket = new TradovateSocket()
-        this.mdSocket = new MarketDataSocket()
+        Promise.all([
+            socket.connect(process.env.WS_URL),
+            mdSocket.connect(process.env.MD_URL)
+        ]).then(() => {
 
-        this.initialized = false
-        this.props = props
-        this.tickCounter = 0
-
-        const { barType, barInterval, contract, elementSizeUnit, histogram, timeRangeType, timeRangeValue } = this.props
-
-    	Promise.all([							
-            this.socket.connect(process.env.WS_URL), 
-            this.mdSocket.connect(process.env.MD_URL)
-        ])
-        .then(() => {
-            return this.socket.synchronize(data => {
+            socket.synchronize(data => {
                 if(data.users) {
-                    this.props.userData = data
+                    state = self.next(state, {
+                        event: TdEvent.UserSync,
+                        data,
+                        props,
+                        api
+                    })
                 }
-                else if(data.eventType === 'Updated') {
-                    if(data.entityType === 'position'){
-                        Object.assign(this.props.userData.positions.find(p => p.id === data.entity.id), data.entity)
-                    }
-                    else if(data.entityType === 'cashBalance') {
-                        Object.assign(this.props.userData.cashBalances.find(cb => cb.id === data.entity.id), data.entity)
-                    }
+                else if(data.entityType) {
+                    state = self.next(state, {
+                        event: TdEvent.Props,
+                        data,
+                        props,
+                        api
+                    })
                 }
             })
-        })
-        .then(syncSub => {				
 
-            this.syncSubscription = syncSub
+            mdSocket.subscribeDOM({
+                symbol: contract.name,
+                contractId: contract.id,
+                callback: data => {
+                    state = self.next(state, {
+                        event: TdEvent.DOM,
+                        data,
+                        props,
+                        api
+                    })
+                }
+            })
 
-            this.initialized = true	
-            this.buffer = new DataBuffer( 
-                    barType === 'Tick'      ? TicksTransformer 
-                :   barType === 'MinuteBar' ? BarsTransformer
-                :                             null
-            )
+            mdSocket.subscribeQuote({
+                symbol: contract.name,
+                contractId: contract.id,
+                callback: data => {
+                    state = self.next(state, {
+                        event: TdEvent.Quote,
+                        data,
+                        props,
+                        api
+                    })
+                }
+            })
 
-
-            console.log('Strategy initialized successfully.')
-
-            this.dataSubscription = this.mdSocket.getChart({
+            mdSocket.getChart({
                 symbol: contract.name,
                 chartDescription: {
                     underlyingType: barType,
@@ -64,58 +89,55 @@ class Strategy {
                             ? timeRangeValue 
                             : timeRangeValue.toString()
                 },
-                callback: (data) => self.state = self.tick.bind(self)(self.state, data) 
-            }) 
-        })        
+                callback: data => {
+                    state = self.next(state, {
+                        event: TdEvent.Chart,
+                        data,
+                        props,
+                        api
+                    })
+                }
+            })
+
+        })
     }
 
-    getPosition() {
-        if(!this.props.userData?.positions) return
-        // console.log(this.props.userData.positions)
-
-        const pos = this.props.userData.positions?.find(p => p.contractId === this.props.contract.id)
-
-        if(!pos) return
-
-        return pos
+    init(props) {
+        return { mode: 'Default Robot Mode' }
     }
 
-    getOpenPnL(price) {
-        const { contract } = this.props
-        const pos = this.getPosition()
+    next(prevState, {event, data, props, api}) {
+        switch(event) {
+            case TdEvent.Chart: {
+                console.log('got chart event')
+                break
+            }
 
-        // console.log(this.props.userData)
-        if(!this.props.userData.products || !this.props.userData.positions) return 0
+            case TdEvent.DOM: {
+                console.log('got DOM event')
+                break
+            }
 
-        const { products } = this.props.userData
+            case TdEvent.Histogram: {
+                console.log('got histogram event')
+                break
+            }
 
-        let item = products.find(p => p.name === contract.name.slice(0, 3))
-                || products.find(p => p.name === contract.name.slice(0, 2))
-                || products.find(p => p.name === contract.name.slice(0, 4))
+            case TdEvent.Quote: {
+                console.log('got quote event')
+                break
+            }
 
-        let vpp = item.valuePerPoint    
+            case TdEvent.UserSync: {
+                console.log('got user sync event')
+                break
+            }
 
-        
-        let boughtPrice = pos.netPrice || pos.prevPrice || 0
-        // console.log(`price: ${price} vpp: ${vpp}, bought@: ${boughtPrice}, item: ${JSON.stringify(item, null, 2)}, pos: ${JSON.stringify(pos, null, 2)}`)
-        
-        return (price - boughtPrice) * vpp * (pos.netPos || 0)       
-    }
-
-    turnOff() {
-        this.dispose()
-        process.exit(0)
-    }
-
-
-    tick(prevState, data) { 
-        this.tickCounter++
-        this.buffer.push(data)
-    }
-
-    dispose() {
-        this.dataSubscription()
-        this.syncSubscription()
+            case TdEvent.Props: {
+                console.log('got props event')
+                break
+            }
+        }
     }
 
     static params = {
@@ -155,4 +177,4 @@ class Strategy {
     }
 }
 
-module.exports = { Strategy }
+module.exports = { Strategy, TdEvent }
