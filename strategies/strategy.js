@@ -138,6 +138,7 @@ class Strategy {
                 break
             }
         }
+        return state
     }
 
     static params = {
