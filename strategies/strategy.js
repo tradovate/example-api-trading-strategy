@@ -1,5 +1,5 @@
 const { makeSocketApi } = require("../endpoints/api")
-const { BarsTransformer, DataBuffer, TicksTransformer } = require("../utils/dataBuffer")
+const { dispatcher } = require("../utils/dispatcher")
 const { MarketDataSocket } = require("../websocket/MarketDataSocket")
 const { TradovateSocket } = require("../websocket/TradovateSocket")
 
@@ -12,17 +12,46 @@ const TdEvent = {
     Histogram:  'histogram'
 }
 
+const EntityType = {
+    Position:           'position',
+    CashBalance:        'cashBalance',
+    Account:            'account',
+    MarginSnapshot:     'marginSnapshot',
+    Currency:           'currency',
+    FillPair:           'fillPair',
+    Order:              'order',
+    Contract:           'contract',
+    ContractMaturity:   'contractMaturity',
+    Product:            'product',
+    Exchange:           'exchange',
+    Command:            'command',
+    CommandReport:      'commandReport',
+    ExecutionReport:    'executionReport',
+    OrderVersion:       'orderVersion',
+    Fill:               'fill', 
+    OrderStrategy:      'orderStrategy',
+    OrderStrategyLink:  'orderStrategyLink',
+    ContractGroup:      'contractGroup'
+}
+
 class Strategy {
     constructor(props) {
         const socket = new TradovateSocket()
         const mdSocket = new MarketDataSocket()
 
-        const api = makeSocketApi(socket)
-
         const { barType, barInterval, contract, elementSizeUnit, timeRangeType, timeRangeValue, histogram } = props
 
         let self = this
-        let state = this.init(props)
+        let model = this.init(props)
+        const D = dispatcher({model, reducer: self.next.bind(self), mw: self.mws })
+
+        const runSideFx = () => {
+            const { dispatch } = D.state() 
+            
+            if(dispatch) {
+                D.dispatch(dispatch.url, dispatch.data)
+            }
+        }
 
         Promise.all([
             socket.connect(process.env.WS_URL),
@@ -31,33 +60,29 @@ class Strategy {
 
             socket.synchronize(data => {
                 if(data.users) {
-                    state = self.next(state, {
-                        event: TdEvent.UserSync,
+                    D.dispatch(TdEvent.UserSync, {
                         data,
                         props,
-                        api
-                    })
+                    })                    
                 }
                 else if(data.entityType) {
-                    state = self.next(state, {
-                        event: TdEvent.Props,
+                    D.dispatch(TdEvent.Props, {
                         data,
                         props,
-                        api
                     })
                 }
+                runSideFx()
             })
 
             mdSocket.subscribeDOM({
                 symbol: contract.name,
                 contractId: contract.id,
                 callback: data => {
-                    state = self.next(state, {
-                        event: TdEvent.DOM,
+                    D.dispatch(TdEvent.DOM, {
                         data,
                         props,
-                        api
                     })
+                    runSideFx()
                 }
             })
 
@@ -65,12 +90,11 @@ class Strategy {
                 symbol: contract.name,
                 contractId: contract.id,
                 callback: data => {
-                    state = self.next(state, {
-                        event: TdEvent.Quote,
+                    D.dispatch(TdEvent.Quote, {
                         data,
                         props,
-                        api
                     })
+                    runSideFx()
                 }
             })
 
@@ -90,56 +114,24 @@ class Strategy {
                             : timeRangeValue.toString()
                 },
                 callback: data => {
-                    state = self.next(state, {
-                        event: TdEvent.Chart,
+                    D.dispatch(TdEvent.Chart, {
                         data,
                         props,
-                        api
                     })
+                    runSideFx()
                 }
             })
 
         })
     }
 
-    init(props) {
-        return { mode: 'Default Robot Mode' }
+    init(props) { }
+
+    addMiddleware(...mws) {
+        this.mws = mws
     }
 
-    next(prevState, {event, data, props, api}) {
-        switch(event) {
-            case TdEvent.Chart: {
-                console.log('got chart event')
-                break
-            }
-
-            case TdEvent.DOM: {
-                console.log('got DOM event')
-                break
-            }
-
-            case TdEvent.Histogram: {
-                console.log('got histogram event')
-                break
-            }
-
-            case TdEvent.Quote: {
-                console.log('got quote event')
-                break
-            }
-
-            case TdEvent.UserSync: {
-                console.log('got user sync event')
-                break
-            }
-
-            case TdEvent.Props: {
-                console.log('got props event')
-                break
-            }
-        }
-        return state
-    }
+    next(prevState, [event, {data, props, dispatch}]) { }
 
     static params = {
         contract: 'object',
@@ -178,4 +170,4 @@ class Strategy {
     }
 }
 
-module.exports = { Strategy, TdEvent }
+module.exports = { Strategy, TdEvent, EntityType }

@@ -17,7 +17,6 @@ async function readFile(filePath) {
 }
 
 const calculateSma = (period, data) => {
-    console.log('length:', data.length)
     return sumBy('close', data.slice(data.length - period))/period
 }
 

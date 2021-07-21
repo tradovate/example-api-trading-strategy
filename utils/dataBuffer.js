@@ -28,21 +28,21 @@ function DataBuffer(transformer = null) {
 
     this.getData = (i = -1) => i > -1 ? buffer[i] : buffer
 
-    this.forEach = buffer.forEach.bind(buffer)
+    this.forEach    = buffer.forEach.bind(buffer)
 
-    this.map = buffer.map.bind(buffer)
+    this.map        = buffer.map.bind(buffer)
 
-    this.reduce = buffer.reduce.bind(buffer)
+    this.reduce     = buffer.reduce.bind(buffer)
 
-    this.slice = buffer.slice.bind(buffer)
+    this.slice      = buffer.slice.bind(buffer)
 
-    this.indexOf = buffer.indexOf.bind(buffer)
+    this.indexOf    = buffer.indexOf.bind(buffer)
 
-    this.every = buffer.every.bind(buffer)
+    this.every      = buffer.every.bind(buffer)
 
-    this. filter = buffer.filter.bind(buffer)
+    this. filter    = buffer.filter.bind(buffer)
 
-    this.some = buffer.some.bind(buffer)
+    this.some       = buffer.some.bind(buffer)
 
     this.last = () => buffer[buffer.length - 1]
 }

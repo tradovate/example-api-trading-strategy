@@ -1,33 +1,54 @@
-const { Strategy } = require('../strategies/strategy')
+const { Strategy, TdEvent } = require('../strategies/strategy')
 
 class YourCustomStrategy extends Strategy {
-    
-    // // // // // // // // // // // // // // // //
-    // Constructor - Initialization              //
-    // // // // // // // // // // // // // // // //
-
-    /**
-     * 
-     * @param {this.params} params 
-     */
     constructor(params) {
         super(params)	
     }		
 
-    // // // // // // // // // // // // // // // //
-    // The Buy/Sell Cycle                        //
-    // // // // // // // // // // // // // // // //
-
-    next(state, {event, data, props, api}) {
-        super.next(state, {event, data, props, api})
+    init(props) {
+        return {
+            //your initial state here!
+        }
     }
 
-    // // // // // // // // // // // // // // // //
-    // Parameter Definitions                     //
-    // // // // // // // // // // // // // // // //
+    next(state, [event, payload]) {
+        switch(event) {
+            case TdEvent.Chart: {
+                console.log('got chart event')
+                break
+            }
 
-    //we use the params object to define how the configureRobot module parameterizes your strategy
-    //currently supports 'string' 'float' and 'int' parsing options.
+            case TdEvent.DOM: {
+                console.log('got DOM event')
+                break
+            }
+
+            case TdEvent.Histogram: {
+                console.log('got histogram event')
+                break
+            }
+
+            case TdEvent.Quote: {
+                console.log('got quote event')
+                break
+            }
+
+            case TdEvent.UserSync: {
+                console.log('got user sync event')
+                break
+            }
+
+            case TdEvent.Props: {
+                console.log('got props event')
+                break
+            }
+
+            default: {
+                return state
+            }
+        }
+    }
+
     static params = {
         ...super.params,
     }

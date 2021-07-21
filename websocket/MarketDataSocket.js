@@ -1,10 +1,5 @@
 const { TradovateSocket } = require('./TradovateSocket')
 
-const getJSON = msg => {
-    if(msg.data.slice(0,1) !== 'a') return
-    return JSON.parse(msg.data.slice(1))
-}
-
 /**
  * Constructor for the MarketData Socket.
  */
