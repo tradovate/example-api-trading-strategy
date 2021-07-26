@@ -1,3 +1,4 @@
+const { EntityType } = require("../strategy")
 const { RobotMode } = require("./robotMode")
 
 const onProps = (prevState, {data, props}) => {
@@ -17,12 +18,14 @@ const onProps = (prevState, {data, props}) => {
 
     if(entityType === EntityType.Product && contract.name.startsWith(entity.name)) {
         return {
-            ...prevState,
-            product: entity
+            state: {
+                ...prevState,
+                product: entity
+            }
         }
     }
 
-    return prevState
+    return { state: prevState }
 }
 
 module.exports = { onProps }

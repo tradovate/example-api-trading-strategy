@@ -23,7 +23,6 @@ class CrossoverStrategy extends Strategy {
     }
 
     init(props) {
-        this.addMiddleware(startOrderStrategy, placeOrder)
         return {
             mode:       RobotMode.Watch,
             buffer:     new DataBuffer(BarsTransformer),
@@ -37,12 +36,14 @@ class CrossoverStrategy extends Strategy {
     next(prevState, [event, payload]) {
         const { props } = payload  
         const { contract } = props
-        const { product, position, mode, buffer } = prevState
+        const { product, position, mode, buffer, tlc, } = prevState
+        const { distance } = tlc.state
 
         drawToConsole({
             mode,
             contract: contract.name,      
             netPos: position?.netPos || 0,
+            distance: distance.toFixed(2),
             'p&l': position && position.netPos !== 0 ? `$${calculatePnL({
                 price: buffer.last()?.close || buffer.last()?.price || 0,
                 contract,
@@ -53,7 +54,7 @@ class CrossoverStrategy extends Strategy {
 
         switch(event) {
             case TdEvent.Chart: {
-                return onChart(prevState, payload)
+                return onChart(prevState, payload)  
             }
 
             case TdEvent.Props: {
@@ -65,7 +66,7 @@ class CrossoverStrategy extends Strategy {
             }
 
             default: {
-                return prevState
+                return { state: prevState }
             }
         }
     }

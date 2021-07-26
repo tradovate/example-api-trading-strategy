@@ -1,8 +1,13 @@
+const { getSocket } = require("../websocket/utils")
+
 const placeOrder = (state, action) => {
     const [event, payload] = action
 
     if(event === '/order/placeOrder') {
-        const { contract, orderType, action, orderQty, price } = payload
+        const { data } = payload
+        const { contract, orderType, action, orderQty, price } = data
+
+        const socket = getSocket()
 
         const body = {
             symbol: contract.name,

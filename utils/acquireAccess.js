@@ -5,11 +5,11 @@ const { pressEnterToContinue } = require("./enterToContinue")
 
 const acquireAccess = async () => {
     console.clear()
-    console.log('[Tradobot]: Acquiring an Access Token using your credentials...')
+    console.log('[AutoTrade]: Acquiring an Access Token using your credentials...')
 
     await requestAccessToken()
 
-    console.log('[Tradobot]: Successfully acquired Access Token.')
+    console.log('[AutoTrade]: Successfully acquired Access Token.')
 
     await pressEnterToContinue()
 
@@ -32,7 +32,7 @@ const acquireAccess = async () => {
 
     console.clear()
     console.log(account)
-    console.log(`\n[Tradobot]: Welcome, ${process.env.USER}.`)
+    console.log(`\n[AutoTrade]: Welcome, ${process.env.USER}.`)
 
     await pressEnterToContinue()
 }

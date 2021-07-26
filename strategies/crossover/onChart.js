@@ -7,8 +7,8 @@ const onChart = (prevState, {data, props}) => {
     
     buffer.push(data)        
     
-    const { variance } = hlv(hlv.state, buffer).state
-    const { negativeCrossover, positiveCrossover } = tlc(tlc.state, buffer).state
+    const { variance } = hlv(hlv.state, buffer.getData()).state
+    const { negativeCrossover, positiveCrossover } = tlc(tlc.state, buffer.getData()).state
 
     const longBracket = {
         qty: orderQuantity,
@@ -29,14 +29,15 @@ const onChart = (prevState, {data, props}) => {
         orderType: 'Market',
     }
     
-    if(mode === RobotMode.Watch) {
-
-        if(negativeCrossover) {            
-            return {
+    if(mode === RobotMode.Watch && negativeCrossover) {
+        return {
+            state: {
                 ...prevState,
                 mode: RobotMode.Short,
-                dispatch: {
-                    url: '/order/startOrderStrategy',
+            },
+            effects: [
+                {
+                    url: 'orderStrategy/startOrderStrategy',
                     data: {
                         contract,
                         action: 'Sell',
@@ -44,14 +45,19 @@ const onChart = (prevState, {data, props}) => {
                         entryVersion,
                     }
                 }
-            }
+            ]
         }
-        else if(positiveCrossover) {
-            return {
+    }
+
+    if(mode === RobotMode.Watch && positiveCrossover) {
+        return {
+            state: {
                 ...prevState,
                 mode: RobotMode.Long,
-                dispatch: {
-                    url: '/order/startOrderStrategy',
+            },
+            effects: [
+                {
+                    url: 'orderStrategy/startOrderStrategy',
                     data: {
                         contract,
                         action: 'Buy',
@@ -59,13 +65,11 @@ const onChart = (prevState, {data, props}) => {
                         entryVersion
                     }
                 }
-            }
+            ]
         }
-
-        return prevState            
     }
 
-    return prevState
+    return { state: prevState }
 }
 
 module.exports = { onChart }

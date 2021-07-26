@@ -1,7 +1,11 @@
-const { makeSocketApi } = require("../endpoints/api")
-const { dispatcher } = require("../utils/dispatcher")
+const { placeOCO } = require("../standardMiddleware/placeOCO")
+const { placeOrder } = require("../standardMiddleware/placeOrder")
+const { startOrderStrategy } = require("../standardMiddleware/startOrderStrategy")
+const { dispatcher, pipeMiddleware } = require("../utils/dispatcher")
 const { MarketDataSocket } = require("../websocket/MarketDataSocket")
+const { ReplaySocket } = require("../websocket/ReplaySocket")
 const { TradovateSocket } = require("../websocket/TradovateSocket")
+const { getSocket, getMdSocket, connectSockets, getReplaySocket } = require("../websocket/utils")
 
 const TdEvent = {
     DOM:        'dom',
@@ -36,92 +40,101 @@ const EntityType = {
 
 class Strategy {
     constructor(props) {
-        const socket = new TradovateSocket()
-        const mdSocket = new MarketDataSocket()
+        const socket = getSocket()
+        const mdSocket = getMdSocket()
+        const replaySocket = getReplaySocket()
 
-        const { barType, barInterval, contract, elementSizeUnit, timeRangeType, timeRangeValue, histogram } = props
+        const { barType, barInterval, contract, elementSizeUnit, timeRangeType, timeRangeValue, histogram, dev_mode, replay_periods } = props
+
+        let mw = pipeMiddleware(startOrderStrategy, placeOrder, placeOCO)
 
         let self = this
-        let model = this.init(props)
-        const D = dispatcher({model, reducer: self.next.bind(self), mw: self.mws })
+        const model = this.init(props)
+        const D = dispatcher({model, reducer: self.next.bind(self), mw })
 
         const runSideFx = () => {
-            const { dispatch } = D.state() 
+            let effects = D.effects()
             
-            if(dispatch) {
-                D.dispatch(dispatch.url, dispatch.data)
+            if(effects) {
+                console.log(effects)
+                effects.forEach(fx => {
+                    if(fx.url) {
+                        D.dispatch(fx.url, {data: fx.data, props})
+                    }
+                    else if(fx.event) {
+                        D.dispatch(fx.event, {data: fx.data, props})
+                    }
+                })
+                effects = []
             }
         }
 
-        Promise.all([
-            socket.connect(process.env.WS_URL),
-            mdSocket.connect(process.env.MD_URL)
-        ]).then(() => {
+        
+        if(dev_mode) {
+            // replaySocket.
+        }
+        socket.synchronize(data => {
+            if(data.users) {
+                D.dispatch(TdEvent.UserSync, {
+                    data,
+                    props,
+                })                    
+            }
+            else if(data.entityType) {
+                D.dispatch(TdEvent.Props, {
+                    data,
+                    props,
+                })
+            }
+            runSideFx()
+        })
 
-            socket.synchronize(data => {
-                if(data.users) {
-                    D.dispatch(TdEvent.UserSync, {
-                        data,
-                        props,
-                    })                    
-                }
-                else if(data.entityType) {
-                    D.dispatch(TdEvent.Props, {
-                        data,
-                        props,
-                    })
-                }
+        mdSocket.subscribeDOM({
+            symbol: contract.name,
+            contractId: contract.id,
+            callback: data => {
+                D.dispatch(TdEvent.DOM, {
+                    data,
+                    props,
+                })
                 runSideFx()
-            })
+            }
+        })
 
-            mdSocket.subscribeDOM({
-                symbol: contract.name,
-                contractId: contract.id,
-                callback: data => {
-                    D.dispatch(TdEvent.DOM, {
-                        data,
-                        props,
-                    })
-                    runSideFx()
-                }
-            })
+        mdSocket.subscribeQuote({
+            symbol: contract.name,
+            contractId: contract.id,
+            callback: data => {
+                D.dispatch(TdEvent.Quote, {
+                    data,
+                    props,
+                })
+                runSideFx()
+            }
+        })
 
-            mdSocket.subscribeQuote({
-                symbol: contract.name,
-                contractId: contract.id,
-                callback: data => {
-                    D.dispatch(TdEvent.Quote, {
-                        data,
-                        props,
-                    })
-                    runSideFx()
-                }
-            })
-
-            mdSocket.getChart({
-                symbol: contract.name,
-                chartDescription: {
-                    underlyingType: barType,
-                    elementSize: barType === 'Tick' ? 1 : barInterval,
-                    elementSizeUnit,
-                    withHistogram: histogram === 'true'
-                },
-                timeRange: {
-                    [timeRangeType]: 
-                        timeRangeType === 'asMuchAsElements' 
-                        || timeRangeType === 'closestTickId' 
-                            ? timeRangeValue 
-                            : timeRangeValue.toString()
-                },
-                callback: data => {
-                    D.dispatch(TdEvent.Chart, {
-                        data,
-                        props,
-                    })
-                    runSideFx()
-                }
-            })
-
+        mdSocket.getChart({
+            symbol: contract.name,
+            chartDescription: {
+                underlyingType: barType,
+                elementSize: barType === 'Tick' ? 1 : barInterval,
+                elementSizeUnit,
+                withHistogram: histogram === 'true'
+            },
+            timeRange: {
+                [timeRangeType]: 
+                    timeRangeType === 'asMuchAsElements' 
+                    || timeRangeType === 'closestTickId' 
+                        ? timeRangeValue 
+                        : timeRangeValue.toString()
+            },
+            callback: data => {
+                D.dispatch(TdEvent.Chart, {
+                    data,
+                    props,
+                })
+                runSideFx()
+            }
         })
     }
 
@@ -131,7 +144,7 @@ class Strategy {
         this.mws = mws
     }
 
-    next(prevState, [event, {data, props, dispatch}]) { }
+    next(prevState, [event, {data, props}]) { }
 
     static params = {
         contract: 'object',

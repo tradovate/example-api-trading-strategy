@@ -34,12 +34,20 @@ TradovateSocket.prototype.request = function({url, query, body, callback, dispos
 
         if(msg.data.slice(0, 1) !== 'a') { return }
 
-        const data = JSON.parse(msg.data.slice(1))
+        let data
+        try {
+            data = JSON.parse(msg.data.slice(1))
+        } catch(err) {
+            data = []
+            console.log('failed to process message: ' + err)
+        }
 
-        data.forEach(item => {
-            // console.log(item)
-            callback(id, item)
-        })
+        if(data.length > 0) {
+            data.forEach(item => {
+                // console.log(item)
+                callback(id, item)
+            })
+        }
     } 
     // console.log(ws.listeners('message'))
     // console.log(ws.listeners('close'))
@@ -130,14 +138,14 @@ TradovateSocket.prototype.connect = async function(url) {
 
             // console.log(msg)
             
-            if(data.length > 1) {
-                let json = JSON.parse(data.slice(1))
-                json.forEach(d => {
-                    if(d.e !== 'chart') {
-                        console.log(d)
-                    }
-                })
-            }
+            // if(data.length > 1) {
+            //     let json = JSON.parse(data.slice(1))
+            //     json.forEach(d => {
+            //         if(d.e !== 'chart') {
+            //             console.log(d)
+            //         }
+            //     })
+            // }
         
             //message discriminator
             switch(kind) {

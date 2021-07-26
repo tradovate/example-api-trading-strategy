@@ -7,7 +7,7 @@ const crypto = require('crypto')
  * @returns AccessTokenResponse
  */
 module.exports = async function requestAccessToken() {
-    console.log(`[Tradobot]: Running Operation /auth/accessTokenRequest...`)
+    console.log(`[AutoTrade]: Running Operation /auth/accessTokenRequest...`)
     const URL = process.env.HTTP_URL + '/auth/accessTokenRequest'
 
     //create a unique identifier for this robot, this will be the same every time the application boots
@@ -20,13 +20,13 @@ module.exports = async function requestAccessToken() {
             .update(process.env.USER)   //adds your tradovate username to the hash
             .digest('hex')              //creates a hash 'digest' - the result of the algo as a hex string
 
-    console.log(`[Tradobot]: Device <${deviceId}> detected.`)
+    console.log(`[AutoTrade]: Device <${deviceId}> detected.`)
 
     //our authentication data...
     const data = {
         name: process.env.USER,
         password: process.env.PASS,
-        appId: 'Tradobot',
+        appId: 'AutoTrade',
         appVersion: '1.0',
         deviceId,
         cid: parseInt(process.env.CID, 10),
@@ -47,7 +47,7 @@ module.exports = async function requestAccessToken() {
     try {
         result = await axios.post(URL, data, config)
     } catch(err) {
-        console.error(`[Tradobot]: Couldn't acquire access token --\n${JSON.stringify(err, null, 2)}`)
+        console.error(`[AutoTrade]: Couldn't acquire access token --\n${JSON.stringify(err, null, 2)}`)
     }
 
     console.log(result.data)

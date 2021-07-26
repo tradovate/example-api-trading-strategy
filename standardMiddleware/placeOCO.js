@@ -1,7 +1,11 @@
-const placeOrder = (state, action) => {
+const { getSocket } = require("../websocket/utils")
+
+const placeOCO = (state, action) => {
     const [event, payload] = action
 
     if(event === '/order/placeOCO') {
+        const { data } = payload
+        
         const {
             action,
             symbol,
@@ -9,7 +13,9 @@ const placeOrder = (state, action) => {
             orderType,
             price,
             other,
-        } = payload
+        } = data
+
+        const socket = getSocket()
 
         const body = {
             accountSpec: process.env.SPEC,
@@ -36,3 +42,5 @@ const placeOrder = (state, action) => {
 
     return action
 }
+
+module.exports = { placeOCO }

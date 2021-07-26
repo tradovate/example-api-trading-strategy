@@ -5,7 +5,7 @@ const drawQuestion = (choices, selected) => {
     const { question, items } = choices
 
     console.clear()
-    console.log(`[Tradobot]: ${question}\n`)
+    console.log(`[AutoTrade]: ${question}\n`)
     if(items) {
         Object.keys(items).forEach((k, i) => {
             console.log(`  ${selected === i ? `> [${i+1}.] ` : `  [${i+1}.] `}${k}`)
@@ -14,7 +14,7 @@ const drawQuestion = (choices, selected) => {
 }
 
 const badChars = [
-    '\u0008', '\u21e7', ',', '.', '!', '#', '&', '%', '$', '^', '*', '(', ')', '-', '+'
+    '\u0008', '\u21e7', '\u1b5b41','\u1b5b42', '\u1b5b43','\u1b5b44',',', '.', '!', '#', '&', '%', '$', '^', '*', '(', ')', '-', '+'
 ]
 
 function sanitize(input) {

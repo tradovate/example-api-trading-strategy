@@ -26,25 +26,27 @@ function DataBuffer(transformer = null) {
         })
     }
 
-    this.getData = (i = -1) => i > -1 ? buffer[i] : buffer
+    this.getData    = (i = -1) => i > -1 ? buffer[i] : buffer
 
-    this.forEach    = buffer.forEach.bind(buffer)
+    this.forEach    = callback => buffer.forEach(callback)
 
-    this.map        = buffer.map.bind(buffer)
+    this.map        = callback => buffer.map(callback)
 
-    this.reduce     = buffer.reduce.bind(buffer)
+    this.reduce     = (callback, seed) => buffer.reduce(callback, seed)
 
-    this.slice      = buffer.slice.bind(buffer)
+    this.slice      = (start, end) => buffer.slice(start, end)
 
-    this.indexOf    = buffer.indexOf.bind(buffer)
+    this.indexOf    = item => buffer.indexOf(item)
 
-    this.every      = buffer.every.bind(buffer)
+    this.every      = predicate => buffer.every(predicate)
 
-    this. filter    = buffer.filter.bind(buffer)
+    this.filter     = predicate => buffer.filter(predicate)
 
-    this.some       = buffer.some.bind(buffer)
+    this.some       = predicate => buffer.some(predicate)
 
-    this.last = () => buffer[buffer.length - 1]
+    this.find       = predicate => buffer.find(predicate)
+
+    this.last       = () => buffer[buffer.length - 1]
 }
 
 Object.defineProperty(DataBuffer.prototype, 'length', {

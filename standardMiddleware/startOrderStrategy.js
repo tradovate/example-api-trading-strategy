@@ -1,10 +1,14 @@
+const { getSocket } = require("../websocket/utils")
 
 const startOrderStrategy = (state, action) => {
 
     const [event, payload] = action
 
-    if(event === '/order/startOrderStrategy') {
-        const {contract, action, brackets, entryVersion} = payload
+    if(event === 'orderStrategy/startOrderStrategy') {
+        const { data } = payload
+        const { contract, action, brackets, entryVersion } = data
+        
+        const socket = getSocket()
 
         const orderData = {
             entryVersion,

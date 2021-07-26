@@ -9,13 +9,15 @@ const onUserSync = (prevState, {data, props}) => {
     const position = positions.find(pos => pos.contractId === contract.id)
 
     return {
-        ...prevState,
-        mode: 
-            position && position.netPos > 0 ? RobotMode.Long 
-        :   position && position.netPos < 0 ? RobotMode.Short 
-        :   /*else*/                          RobotMode.Watch,
-        product,
-        position,
+        state: {
+            ...prevState,
+            mode: 
+                position && position.netPos > 0 ? RobotMode.Long 
+            :   position && position.netPos < 0 ? RobotMode.Short 
+            :   /*else*/                          RobotMode.Watch,
+            product,
+            position,
+        }
     }
 }
 

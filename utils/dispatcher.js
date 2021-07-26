@@ -44,15 +44,19 @@ const pipeMiddleware = (...fns) => (model, action) => {
  * @returns {Store<T>}
  */
 const dispatcher = ({model = null, reducer = null, mw = null}) => {
-    let store = deepCopy(model) || {}
+    let store = { state: deepCopy(model) || {}, effects: [] } 
     const queue = []
     let dispatching = false
     
-    const state = () => store  
+    const state = () => store.state
+    const effects = () => store.effects  
     
-    //[k: string, data?: any]
+    //[event: string, data?: any]
     const dispatch = (event, data) => { 
         const action = [event, data]
+        
+        // console.log('[dispatch.state() value]: ' +JSON.stringify(state(), null, 2))
+        console.log('[raw dispatcher store value]: ' +JSON.stringify(store, null, 2))
 
         if(dispatching) {
             queue.push(action)
@@ -62,21 +66,22 @@ const dispatcher = ({model = null, reducer = null, mw = null}) => {
         let result = action
         
         if(mw && typeof mw === 'function') {
-            result = mw(store, action)
+            result = mw(store.state, action)
         }
-        if(reducer)
-            store = reducer(store, result)
+        if(reducer) {
+            store = reducer(store.state, result)
+        }
 
         while(queue.length > 0) {
             let a = queue.pop()
-            result = mw(store, a)
+            result = mw(store.state, a)
             if(reducer)
-                store = reducer(store, result)
+                store = reducer(store.state, result)
         }      
         dispatching = false
     }    
     
-    return { state, dispatch }
+    return { state, effects, dispatch }
 }
 
 module.exports = { dispatcher, pipeMiddleware }
