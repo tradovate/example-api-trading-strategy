@@ -7,12 +7,14 @@ const onProps = (prevState, {data, props}) => {
     if(entityType === EntityType.Position && eventType === 'Updated') {
         const { netPos } = entity
         return {
-            ...prevState,
-            mode: 
-                netPos > 0  ? RobotMode.Long
-            :   netPos < 0  ? RobotMode.Short
-            :   /*else*/      RobotMode.Watch,
-            position: entity
+            state: {
+                ...prevState,
+                mode: 
+                    netPos > 0  ? RobotMode.Long
+                :   netPos < 0  ? RobotMode.Short
+                :   /*else*/      RobotMode.Watch,
+                position: entity
+            }
         }
     }
 
