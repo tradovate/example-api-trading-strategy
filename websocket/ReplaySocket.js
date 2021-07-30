@@ -1,10 +1,11 @@
+const { MarketDataSocket } = require("./MarketDataSocket");
 const { TradovateSocket } = require("./TradovateSocket");
 
 function ReplaySocket() {
-    TradovateSocket.call(this)
+    MarketDataSocket.call(this)
 }
 
-Object.assign(ReplaySocket.prototype, TradovateSocket.prototype)
+Object.assign(ReplaySocket.prototype, MarketDataSocket.prototype)
 
 ReplaySocket.prototype.checkReplaySession = function({startTimestamp, callback}) {
     return this.request({
@@ -23,9 +24,9 @@ ReplaySocket.prototype.initializeClock = function({startTimestamp, speed = 400, 
         url: 'replay/initializeClock',
         body: { startTimestamp, speed, initialBalance },
         callback: (id, item) => {
-            console.log(item)
+            // console.log('from RS line 27: '+JSON.stringify(item, null, 2))
             if(id === item.i && item.s === 200) {
-                // console.log()
+                callback()
             }
         },
     })

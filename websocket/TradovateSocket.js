@@ -30,6 +30,10 @@ TradovateSocket.prototype.request = function({url, query, body, callback, dispos
     const id = this.counter.increment()
     const ws = this.ws
 
+
+    console.log('from TS line 34')
+    console.log({url, query, body, callback, disposer, id})
+
     const resSubscription = msg => {
 
         if(msg.data.slice(0, 1) !== 'a') { return }
@@ -69,10 +73,10 @@ TradovateSocket.prototype.synchronize = function(callback) {
     }
     return this.request({
         url: 'user/syncrequest',
-        body: { users: [parseInt(process.env.USER_ID, 10)] },
+        body: { accounts: [parseInt(process.env.ID, 10)] },
         callback: (id, data) => { 
             // console.log(data)
-            if(data.d.users) {
+            if(data.i === id) {
                 callback(data.d)
             }
             if(data.e && data.e === 'props') {
@@ -167,6 +171,8 @@ TradovateSocket.prototype.connect = async function(url) {
                     break
                 case 'a':
                     const parsedData = JSON.parse(msg.data.slice(1))
+                    console.log('from TS line 173:')
+                    console.log(parsedData)
                     const [first] = parsedData
                     if(first.i === 0 && first.s === 200) {
                         res()

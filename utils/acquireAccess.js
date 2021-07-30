@@ -4,6 +4,7 @@ const { askQuestion } = require("./askQuestion")
 const { pressEnterToContinue } = require("./enterToContinue")
 
 const acquireAccess = async () => {
+
     console.clear()
     console.log('[AutoTrade]: Acquiring an Access Token using your credentials...')
 

@@ -35,17 +35,19 @@ const writeToLog = item => {
         if(!err) {
             log += buffer.toString('utf-8') || ''
         }
+        
+        let newLog
+        if(!log) {
+            newLog = [].push(item)
+        } else {
+            let json = JSON.parse(log)
+            newLog = json.push(item)
+        }
+
+        fs.writeFile('./log.json', JSON.stringify(newLog, null, 2), {}, () => { console.log('Logged new message from WebSocket.')})
     })
 
-    let newLog
-    if(!log) {
-        newLog = [].push(item)
-    } else {
-        let json = JSON.parse(log)
-        newLog = json.push(item)
-    }
-
-    fs.writeFile('./log.json', JSON.stringify(newLog, null, 2), {}, () => { console.log('Logged new message from WebSocket.')})
+    
 }
 
 const KEYS = {

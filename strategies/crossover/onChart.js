@@ -1,4 +1,4 @@
-const { RobotMode } = require("./robotMode")
+const { CrossoverMode } = require("./crossoverMode")
 
 const onChart = (prevState, {data, props}) => {
 
@@ -10,17 +10,19 @@ const onChart = (prevState, {data, props}) => {
     const { variance } = hlv(hlv.state, buffer.getData()).state
     const { negativeCrossover, positiveCrossover } = tlc(tlc.state, buffer.getData()).state
 
+    const round_s = num => Math.round((num + Number.EPSILON) * 100) / 100
+
     const longBracket = {
         qty: orderQuantity,
-        profitTarget: variance,
-        stopLoss: -(Math.floor(variance/4)),
+        profitTarget: round_s(variance/1.33),
+        stopLoss: round_s(-variance/5),
         trailingStop: true
     }
       
     const shortBracket = {
         qty: orderQuantity,
-        profitTarget: -variance,
-        stopLoss: (Math.ceil(variance/4)),
+        profitTarget: round_s(-variance/1.33),
+        stopLoss: round_s(variance/5),
         trailingStop: true
     }
 
@@ -29,11 +31,11 @@ const onChart = (prevState, {data, props}) => {
         orderType: 'Market',
     }
     
-    if(mode === RobotMode.Watch && negativeCrossover) {
+    if(mode === CrossoverMode.Watch && negativeCrossover) {
         return {
             state: {
                 ...prevState,
-                mode: RobotMode.Short,
+                mode: CrossoverMode.Short,
             },
             effects: [
                 {
@@ -44,16 +46,17 @@ const onChart = (prevState, {data, props}) => {
                         brackets: [shortBracket],
                         entryVersion,
                     }
-                }
+                },
+                { event: '/draw' }
             ]
         }
     }
 
-    if(mode === RobotMode.Watch && positiveCrossover) {
+    if(mode === CrossoverMode.Watch && positiveCrossover) {
         return {
             state: {
                 ...prevState,
-                mode: RobotMode.Long,
+                mode: CrossoverMode.Long,
             },
             effects: [
                 {

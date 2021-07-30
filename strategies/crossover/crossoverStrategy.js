@@ -1,15 +1,13 @@
-const calculatePnL = require("../../utils/calculatePnL")
 const highLowVariance = require("../../modules/highLowVariance")
 const twoLineCrossover = require("../../modules/twoLineCrossover")
+
 const { DataBuffer, BarsTransformer } = require("../../utils/dataBuffer")
-const drawToConsole = require("../../utils/drawToConsole")
-const { Strategy, TdEvent, EntityType } = require("../strategy")
-const { startOrderStrategy } = require("../../standardMiddleware/startOrderStrategy")
+const { Strategy, TdEvent } = require("../strategy/strategy")
 const { onUserSync } = require("./onUserSync")
 const { onProps } = require("./onProps")
 const { onChart } = require("./onChart")
-const { placeOrder } = require("../../standardMiddleware/placeOrder")
-const { RobotMode } = require("./robotMode")
+const { CrossoverMode } = require("./crossoverMode")
+const { drawEffect } = require("./drawEffect")
 
 
 
@@ -23,34 +21,19 @@ class CrossoverStrategy extends Strategy {
     }
 
     init(props) {
+        this.addMiddleware(drawEffect)
         return {
-            mode:       RobotMode.Watch,
+            mode:       CrossoverMode.Watch,
             buffer:     new DataBuffer(BarsTransformer),
             tlc:        twoLineCrossover(props.shortPeriod, props.longPeriod),
             hlv:        highLowVariance(props.variancePeriod),
             product:    null,
             position:   null,
+            realizedPnL: 0
         }
     }
     
     next(prevState, [event, payload]) {
-        const { props } = payload  
-        const { contract } = props
-        const { product, position, mode, buffer, tlc, } = prevState
-        const { distance } = tlc.state
-
-        drawToConsole({
-            mode,
-            contract: contract.name,      
-            netPos: position?.netPos || 0,
-            distance: distance.toFixed(2),
-            'p&l': position && position.netPos !== 0 ? `$${calculatePnL({
-                price: buffer.last()?.close || buffer.last()?.price || 0,
-                contract,
-                position,
-                product,
-            }).toFixed(2)}` : '$0.00'
-        })    
 
         switch(event) {
             case TdEvent.Chart: {
@@ -66,7 +49,12 @@ class CrossoverStrategy extends Strategy {
             }
 
             default: {
-                return { state: prevState }
+                return { 
+                    state: prevState,
+                    effects: [
+                        { event: '/draw' }          
+                    ]
+                }
             }
         }
     }

@@ -1,4 +1,4 @@
-const { Strategy, TdEvent } = require('../strategies/strategy')
+const { Strategy, TdEvent } = require('../strategy/strategy')
 
 class YourCustomStrategy extends Strategy {
     constructor(params) {

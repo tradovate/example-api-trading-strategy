@@ -42,9 +42,9 @@ MarketDataSocket.prototype.subscribeQuote = function({symbol, contractId: cid, c
                 url: 'md/unsubscribeQuote',
                 body: {
                     symbol
-                }
+                },
+                callback: d
             })
-            d()
         },
     })
 
@@ -71,9 +71,9 @@ MarketDataSocket.prototype.subscribeDOM = function({symbol, contractId: cid, cal
                 url: 'md/unsubscribeDOM',
                 body: {
                     symbol
-                }
+                },
+                callback: d
             })
-            d()
         },
     })
     
@@ -102,9 +102,9 @@ MarketDataSocket.prototype.subscribeHistorgram = function({symbol, contractId: c
                 url: 'md/unsubscribeHistogram',
                 body: {
                     symbol
-                }
+                },
+                callback: d
             })
-            d()
         },
     })
     
@@ -144,11 +144,10 @@ MarketDataSocket.prototype.getChart = function({symbol, chartDescription, timeRa
                 url: 'md/cancelChart',
                 body: {
                     subscriptionId: historicalId
-                }
+                },
+                callback: d
             })
-            d()
-        },
-        once: false
+        }
     })
     this.subscriptions.push({symbol, subscription})
     

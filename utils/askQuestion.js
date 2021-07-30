@@ -27,6 +27,7 @@ function sanitize(input) {
     return output
 }
 
+
 const askQuestion = async (choices) => {
     let madeChoice = false
     let input = ''
