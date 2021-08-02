@@ -1,10 +1,11 @@
-const { getSocket } = require("../websocket/utils")
+const { getSocket, getReplaySocket } = require("../websocket/utils")
 
 const placeOCO = (state, action) => {
     const [event, payload] = action
 
     if(event === '/order/placeOCO') {
-        const { data } = payload
+        const { data, props } = payload
+        const { dev_mode } = props
         
         const {
             action,
@@ -15,7 +16,7 @@ const placeOCO = (state, action) => {
             other,
         } = data
 
-        const socket = getSocket()
+        const socket = dev_mode ? getReplaySocket() : getSocket()
 
         const body = {
             accountSpec: process.env.SPEC,

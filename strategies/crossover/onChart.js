@@ -47,7 +47,7 @@ const onChart = (prevState, {data, props}) => {
                         entryVersion,
                     }
                 },
-                { event: '/draw' }
+                { event: 'crossover/draw' }
             ]
         }
     }

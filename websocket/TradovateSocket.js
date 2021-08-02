@@ -1,5 +1,6 @@
 const WebSocket = require('ws')
 const { writeToLog } = require('../utils/helpers')
+const logger = require('../utils/logger')
 
 function Counter() {
     this.current = 0
@@ -30,9 +31,9 @@ TradovateSocket.prototype.request = function({url, query, body, callback, dispos
     const id = this.counter.increment()
     const ws = this.ws
 
-
-    console.log('from TS line 34')
-    console.log({url, query, body, callback, disposer, id})
+    // console.log('request:')
+    // console.log({url, query, body, callback, disposer, id})
+    // console.log('')
 
     const resSubscription = msg => {
 
@@ -171,8 +172,11 @@ TradovateSocket.prototype.connect = async function(url) {
                     break
                 case 'a':
                     const parsedData = JSON.parse(msg.data.slice(1))
-                    console.log('from TS line 173:')
-                    console.log(parsedData)
+
+                    // console.log('response')
+                    // console.log(JSON.stringify(parsedData, null, 2))
+                    // console.log('')
+
                     const [first] = parsedData
                     if(first.i === 0 && first.s === 200) {
                         res()

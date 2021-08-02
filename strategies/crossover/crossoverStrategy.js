@@ -8,6 +8,7 @@ const { onProps } = require("./onProps")
 const { onChart } = require("./onChart")
 const { CrossoverMode } = require("./crossoverMode")
 const { drawEffect } = require("./drawEffect")
+const { onProductFound } = require("./onProductFound")
 
 
 
@@ -48,11 +49,16 @@ class CrossoverStrategy extends Strategy {
                 return onUserSync(prevState, payload)
             }
 
+            case 'product/found': {
+                console.log('[PRODUCT FOUND CALLED]')
+                return onProductFound(prevState, payload)
+            }
+
             default: {
                 return { 
                     state: prevState,
                     effects: [
-                        { event: '/draw' }          
+                        { event: 'crossover/draw' }          
                     ]
                 }
             }

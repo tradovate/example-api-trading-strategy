@@ -20,7 +20,7 @@ const onUserSync = (prevState, {data, props}) => {
             position,
             realizedPnL
         },
-        effects: [{ event: '/draw' }]
+        effects: [{ event: 'crossover/draw' }]
     }
 }
 

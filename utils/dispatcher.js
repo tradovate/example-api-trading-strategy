@@ -57,6 +57,8 @@ const dispatcher = ({model = null, reducer = null, mw = null}) => {
         
         // console.log('[dispatch.state() value]: ' +JSON.stringify(state(), null, 2))
         // console.log('[raw dispatcher store value]: ' +JSON.stringify(store, null, 2))
+        // console.log('[FROM DISPATCHER -- EVT]: ' + event)
+        // console.log('[FROM DISPATCHER - DATA]: ' + JSON.stringify(data, null, 2))
 
         if(dispatching) {
             queue.push(action)

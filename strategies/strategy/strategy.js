@@ -1,5 +1,6 @@
 const { placeOCO } = require("../../standardMiddleware/placeOCO")
 const { placeOrder } = require("../../standardMiddleware/placeOrder")
+const { productFind } = require("../../standardMiddleware/productFind")
 const { startOrderStrategy } = require("../../standardMiddleware/startOrderStrategy")
 const { dispatcher, pipeMiddleware } = require("../../utils/dispatcher")
 const { getSocket, getMdSocket, getReplaySocket } = require("../../websocket/utils")
@@ -42,19 +43,20 @@ class Strategy {
         let replaySocket = getReplaySocket()
 
         const { barType, barInterval, contract, elementSizeUnit, timeRangeType, timeRangeValue, histogram, dev_mode, replay_periods } = props
-
         
         let self = this
         const model = this.init(props)
-        let mw = pipeMiddleware(startOrderStrategy, placeOrder, placeOCO, ...this.mws)
+        let mw = pipeMiddleware(startOrderStrategy, placeOrder, placeOCO, productFind, ...this.mws)
         const D = dispatcher({model, reducer: self.next.bind(self), mw })
+
+        props.dispatcher = D
 
         const runSideFx = () => {
             let effects = D.effects()
             
-            if(effects) {
+            if(effects && effects.length && effects.length > 0) {
                 console.log('effects: ')
-                console.log(effects)
+                console.log(JSON.stringify(effects, null, 2))
                 effects.forEach(fx => {
                     if(fx.url) {
                         D.dispatch(fx.url, {data: fx.data, props})
@@ -96,7 +98,7 @@ class Strategy {
                                             disposerA()
                                             disposerB()
                                             disposerC()
-                                            console.log(socket.ws.listeners)
+                                            console.log(socket.ws.listeners())
                                         }
                                     }
                                 })

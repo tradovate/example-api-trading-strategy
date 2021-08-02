@@ -6,7 +6,7 @@ const onProps = (prevState, {data, props}) => {
     const { contract } = props
     const { eventType, entityType, entity } = data
     
-    if(entityType === EntityType.Position && eventType === 'Updated' && entity.contractId === contract.id) {
+    if(entityType === EntityType.Position && entity.contractId === contract.id) {
         const { netPos } = entity
         return {
             state: {
@@ -16,17 +16,15 @@ const onProps = (prevState, {data, props}) => {
                 :   netPos < 0  ? CrossoverMode.Short
                 :   /*else*/      CrossoverMode.Watch,
                 position: entity
-            }
-        }
-    }
-
-    if(entityType === EntityType.Product && contract.name.startsWith(entity.name)) {
-        return {
-            state: {
-                ...prevState,
-                product: entity
             },
-            effects: [{ event: '/draw' }]
+            effects: [
+                {
+                    url: 'product/find',
+                    data: {
+                        name: contract.name.slice(0, contract.name.length - 2)
+                    }
+                }
+            ]
         }
     }
 
@@ -39,7 +37,7 @@ const onProps = (prevState, {data, props}) => {
                 ...prevState,
                 realizedPnL
             },
-            effects: [{ event: '/draw' }]
+            effects: [{ event: 'crossover/draw' }]
         }
     }
 
