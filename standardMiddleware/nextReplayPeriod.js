@@ -10,15 +10,10 @@ const nextReplayPeriod = (state, action) => {
         const { current_period, position, realizedPnL, buffer, product } = state
         const { dispatcher, replay_periods } = props
 
-        if(current_period === replay_periods.length) {
-            console.log('[DISPATCHED REPLAY COMPLETE]')
-            dispatcher.dispatch('replay/replayComplete', payload)
-            return action
-        } else {
-            console.log('[TRIED RESET REPLAY]')
-
+        let modified_period = current_period - 1
+        if(modified_period - 1 < replay_periods.length){
             const sessionResults = getSessionResults()
-            sessionResults[`${replay_periods[current_period].start} to ${replay_periods[current_period].stop}`] = {
+            sessionResults[`${replay_periods[modified_period].start} to ${replay_periods[modified_period].stop}`] = {
                 finalPos: position?.netPos || 0,
                 bought: position?.bought || 0,
                 sold: position?.sold || 0,
@@ -29,8 +24,18 @@ const nextReplayPeriod = (state, action) => {
                     position
                 }).toFixed(2)}`
             }
-
             console.log(sessionResults)
+        }
+
+        if(current_period === replay_periods.length) {
+            console.log('[DISPATCHED REPLAY COMPLETE]')
+            dispatcher.dispatch('replay/replayComplete', payload)
+            return action
+        } else {
+            console.log('[TRIED RESET REPLAY]')
+
+            
+
 
             const socket = getReplaySocket()
 
