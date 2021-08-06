@@ -1,6 +1,6 @@
 const WebSocket = require('ws')
 const { writeToLog } = require('../utils/helpers')
-const logger = require('../utils/logger')
+// const logger = require('../utils/logger')
 
 function Counter() {
     this.current = 0
@@ -29,7 +29,6 @@ TradovateSocket.prototype.getSocket = function() {
  */
 TradovateSocket.prototype.request = function({url, query, body, callback, disposer}) {
     const id = this.counter.increment()
-    const ws = this.ws
 
     // console.log('request:')
     // console.log({url, query, body, callback, disposer, id})
@@ -56,14 +55,14 @@ TradovateSocket.prototype.request = function({url, query, body, callback, dispos
     } 
     // console.log(ws.listeners('message'))
     // console.log(ws.listeners('close'))
-    ws.addEventListener('message', resSubscription)
-    ws.send(`${url}\n${id}\n${query}\n${JSON.stringify(body)}`)
+    this.ws.addEventListener('message', resSubscription)
+    this.ws.send(`${url}\n${id}\n${query}\n${JSON.stringify(body)}`)
 
     return () => {
         if(disposer && typeof disposer === 'function'){
             disposer()
         }
-        ws.removeListener('message', resSubscription)
+        this.ws.removeListener('message', resSubscription)
     }
 }
 
@@ -77,10 +76,9 @@ TradovateSocket.prototype.synchronize = function(callback) {
         body: { accounts: [parseInt(process.env.ID, 10)] },
         callback: (id, data) => { 
             // console.log(data)
-            if(data.i === id) {
-                callback(data.d)
-            }
-            if(data.e && data.e === 'props') {
+            if(data.i === id
+            || (data.e && data.e === 'props')
+            || (data.e && data.e === 'clock')) {
                 callback(data.d)
             }
         }
@@ -125,10 +123,11 @@ TradovateSocket.prototype.synchronize = function(callback) {
 // }
 
 TradovateSocket.prototype.connect = async function(url) {
-    if(!this.ws || this.ws.readyState == 3 || this.ws.readyState == 2) {
-        this.ws = new WebSocket(url)
-    }
 
+    this.ws = new WebSocket(url)
+    this.ws.setMaxListeners(24)
+    this.counter = new Counter()
+    
     let interval
 
     return new Promise((res, rej) => {
@@ -197,7 +196,9 @@ TradovateSocket.prototype.connect = async function(url) {
 
 TradovateSocket.prototype.disconnect = function() {
     console.log('closing websocket connection')
+    this.ws.removeAllListeners('message')
     this.ws.close(1000, `Client initiated disconnect.`)
+    this.ws = null
 }
 
 TradovateSocket.prototype.isConnected = function() {

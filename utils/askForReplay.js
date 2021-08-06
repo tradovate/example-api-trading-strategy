@@ -1,6 +1,6 @@
 const { askQuestion } = require("./askQuestion")
 
-const askForReplay = async () => {
+const askForReplay = async (times = []) => {
     const shouldRunReplay = await askQuestion({
         question: 'Would you like to run a Market Replay back-testing session?',
         items: {
@@ -23,14 +23,18 @@ const askForReplay = async () => {
     }
     
     if(safeShouldRun) {
-        // '2021-05-03T00:00' //format
-        const year = await chooseYear()
-        const month = await chooseMonth()
-        const day = await chooseDay()
-        const hour = await chooseHour()
-        const minute = await chooseMinute()
-
-        return new Date(`${year}-${month}-${day}T${hour}:${minute}`).toJSON()
+        if(times.length === 0) {
+            // '2021-05-03T00:00' //format
+            const year = await chooseYear()
+            const month = await chooseMonth()
+            const day = await chooseDay()
+            const hour = await chooseHour()
+            const minute = await chooseMinute()
+    
+            return new Date(`${year}-${month}-${day}T${hour}:${minute}`).toJSON()
+        } else {
+            return times[0].start
+        }
     }
 
     return false

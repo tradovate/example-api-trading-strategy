@@ -43,7 +43,7 @@ MarketDataSocket.prototype.subscribeQuote = function({symbol, contractId: cid, c
                 body: {
                     symbol
                 },
-                callback: d
+                callback: () => d()
             })
         },
     })
@@ -72,7 +72,9 @@ MarketDataSocket.prototype.subscribeDOM = function({symbol, contractId: cid, cal
                 body: {
                     symbol
                 },
-                callback: d
+                callback: () => {
+                    d()
+                }
             })
         },
     })
@@ -145,7 +147,7 @@ MarketDataSocket.prototype.getChart = function({symbol, chartDescription, timeRa
                 body: {
                     subscriptionId: historicalId
                 },
-                callback: d
+                callback: () => d()
             })
         }
     })
@@ -155,9 +157,9 @@ MarketDataSocket.prototype.getChart = function({symbol, chartDescription, timeRa
 }
 
 MarketDataSocket.prototype.disconnect = function() {
-    TradovateSocket.prototype.disconnect.call(this)
     this.subscriptions.forEach(({subscription}) => subscription())
     this.subscriptions = []
+    TradovateSocket.prototype.disconnect.call(this)
 }
 
 Array.prototype.tap = function(fn) {

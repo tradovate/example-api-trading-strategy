@@ -9,6 +9,7 @@ const { onChart } = require("./onChart")
 const { CrossoverMode } = require("./crossoverMode")
 const { drawEffect } = require("./drawEffect")
 const { onProductFound } = require("./onProductFound")
+const { onReplayComplete } = require("./onReplayComplete")
 
 
 
@@ -36,6 +37,9 @@ class CrossoverStrategy extends Strategy {
     
     next(prevState, [event, payload]) {
 
+        console.log('[NEXT]')
+        console.log(JSON.stringify(prevState, null, 2))
+
         switch(event) {
             case TdEvent.Chart: {
                 return onChart(prevState, payload)  
@@ -50,27 +54,30 @@ class CrossoverStrategy extends Strategy {
             }
 
             case 'product/found': {
-                console.log('[PRODUCT FOUND CALLED]')
                 return onProductFound(prevState, payload)
             }
 
+            case 'replay/showStats': {
+                return onReplayComplete(prevState, payload)
+            }
+
             default: {
-                return { 
+                return this.catchReplaySessionsDefault(prevState, [event, payload]) || { 
                     state: prevState,
                     effects: [
                         { event: 'crossover/draw' }          
                     ]
-                }
+                }       
             }
         }
     }
     
     static params = {
         ...super.params,
-        longPeriod:             'int',
-        shortPeriod:            'int',
-        variancePeriod:         'int',
-        orderQuantity:          'int',
+        longPeriod:     'int',
+        shortPeriod:    'int',
+        variancePeriod: 'int',
+        orderQuantity:  'int',
     }
 }
 

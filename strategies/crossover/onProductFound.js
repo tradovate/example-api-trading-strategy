@@ -2,8 +2,6 @@
 const onProductFound = (prevState, {data}) => {
 
     const { entity } = data
-    console.log('FROM PROD FOUND')
-    console.log(entity)
 
     return {
         state: {

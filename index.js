@@ -22,10 +22,10 @@ process.env.HTTP_URL    = 'https://demo-d.tradovateapi.com/v1'
 process.env.WS_URL      = 'wss://demo-d.tradovateapi.com/v1/websocket'
 process.env.MD_URL      = 'wss://md-d.tradovateapi.com/v1/websocket'
 process.env.REPLAY_URL  = 'wss://replay-d.tradovateapi.com/v1/websocket'
-process.env.USER        = ''    
-process.env.PASS        = '' 
-process.env.SEC         = ''
-process.env.CID         = 0
+process.env.USER        = 'alennert02'    
+process.env.PASS        = 'YumD00d24!' 
+process.env.SEC         = 'f03741b6-f634-48d6-9308-c8fb871150c2'
+process.env.CID         = 8
 
 //END ENVIRONMENT VARIABLES -----------------------------------------------------------------------------------
 
@@ -33,6 +33,18 @@ const ALL_STRATEGIES = {
     'Crossover Strategy': CrossoverStrategy,
     'Your Custom Strategy': YourCustomStrategy
 }
+
+//Replay times must be JSON strings!
+const REPLAY_TIMES = [
+    {
+        start: new Date(`2021-07-28T22:30`).toJSON(), //use your local time, .toJSON will transform it to universal
+        stop: new Date(`2021-07-28T22:31`).toJSON()
+    },
+    {
+        start: new Date(`2021-07-28T22:31`).toJSON(),
+        stop: new Date(`2021-07-28T22:32`).toJSON(),
+    }
+]
 
 /**
  * Program entry point.
@@ -45,33 +57,30 @@ async function main() {
 
     await acquireAccess()
 
-    await connectSockets()
-
     // // // // // // // // // // // // // // // //
     // Configuration Section                     //
     // // // // // // // // // // // // // // // //
 
-    const maybeReplayString = await askForReplay()
+    const maybeReplayString = await askForReplay(REPLAY_TIMES)
+
+    if(maybeReplayString) {
+        const replaySocket = getReplaySocket()
+        await replaySocket.connect(process.env.REPLAY_URL)
+    } else {
+        const socket = getSocket()
+        const mdSocket = getMdSocket()
+
+        await Promise.all([
+            socket.connect(process.env.WS_URL),
+            mdSocket.connect(process.env.MD_URL)
+        ])
+    }
 
     // const Strategy = await configureRobot(ALL_STRATEGIES)
 
     //COMMENT ABOVE, UNCOMMENT BELOW you want to parameterize the strategy here instead of via console.
     // const minus24h = new Date(new Date().getTime() - 1000*60*60*24)
     // minus24h.setHours(7)
-
-    // const replaySocket = new ReplaySocket()
-    // replaySocket.connect(process.env.REPLAY_URL).then(() => {
-    //     replaySocket.checkReplaySession({
-    //         startTimestamp: minus24h.toJSON(),
-    //         callback: (item) => {
-    //             if(item.checkStatus && item.checkStatus === 'OK') {
-    //                 replaySocket.initializeClock({
-    //                     startTimestamp: minus24h.toJSON()
-    //                 })
-    //             }
-    //         }
-    //     })
-    // })
 
     let contract1 = await askForContract()
 
@@ -106,19 +115,17 @@ async function main() {
     const strategy1 = new CrossoverStrategy({
         contract: contract1,
         barType: 'MinuteBar',
-        barInterval: 5,
+        barInterval: 1,
         elementSizeUnit: 'UnderlyingUnits',
         histogram: false,
         timeRangeType: 'asMuchAsElements',
         timeRangeValue: 41,
         longPeriod: 13,
         shortPeriod: 5,
-        variancePeriod: 41,
-        orderQuantity: 10,
+        variancePeriod: 34,
+        orderQuantity: 1,
         dev_mode: !!maybeReplayString,
-        replay_periods: [
-            maybeReplayString
-        ]
+        replay_periods: REPLAY_TIMES
     })
 
     // const strategy2 = new CrossoverStrategy({
@@ -128,11 +135,11 @@ async function main() {
     //     elementSizeUnit: 'UnderlyingUnits',
     //     histogram: false,
     //     timeRangeType: 'asMuchAsElements',
-    //     timeRangeValue: 41,
+    //     timeRangeValue: 34,
     //     longPeriod: 13,
     //     shortPeriod: 5,
-    //     variancePeriod: 41,
-    //     orderQuantity: 10,
+    //     variancePeriod: 34,
+    //     orderQuantity: 1,
     //     dev_mode: !!maybeReplayString,
     //     replay_periods: [
     //         maybeReplayString
@@ -146,11 +153,11 @@ async function main() {
     //     elementSizeUnit: 'UnderlyingUnits',
     //     histogram: false,
     //     timeRangeType: 'asMuchAsElements',
-    //     timeRangeValue: 41,
+    //     timeRangeValue: 34,
     //     longPeriod: 13,
     //     shortPeriod: 5,
-    //     variancePeriod: 41,
-    //     orderQuantity: 10,
+    //     variancePeriod: 34,
+    //     orderQuantity: 1,
     //     dev_mode: !!maybeReplayString,
     //     replay_periods: [
     //         maybeReplayString
@@ -164,11 +171,11 @@ async function main() {
     //     elementSizeUnit: 'UnderlyingUnits',
     //     histogram: false,
     //     timeRangeType: 'asMuchAsElements',
-    //     timeRangeValue: 41,
+    //     timeRangeValue: 34,
     //     longPeriod: 13,
     //     shortPeriod: 5,
-    //     variancePeriod: 41,
-    //     orderQuantity: 10,
+    //     variancePeriod: 34,
+    //     orderQuantity: 1,
     //     dev_mode: !!maybeReplayString,
     //     replay_periods: [
     //         maybeReplayString
@@ -182,11 +189,11 @@ async function main() {
     //     elementSizeUnit: 'UnderlyingUnits',
     //     histogram: false,
     //     timeRangeType: 'asMuchAsElements',
-    //     timeRangeValue: 41,
+    //     timeRangeValue: 34,
     //     longPeriod: 13,
     //     shortPeriod: 5,
-    //     variancePeriod: 41,
-    //     orderQuantity: 10,
+    //     variancePeriod: 34,
+    //     orderQuantity: 1,
     //     dev_mode: !!maybeReplayString,
     //     replay_periods: [
     //         maybeReplayString

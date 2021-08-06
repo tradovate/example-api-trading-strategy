@@ -28,6 +28,9 @@ ReplaySocket.prototype.initializeClock = function({startTimestamp, speed = 400, 
             if(id === item.i && item.s === 200) {
                 callback()
             }
+            else if(item.e && item.e === 'clock') {
+                callback(item.d)
+            }
         },
     })
 }

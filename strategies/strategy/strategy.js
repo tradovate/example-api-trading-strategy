@@ -1,6 +1,9 @@
+const { drawReplayStats } = require("../../standardMiddleware/drawReplayStats")
+const { nextReplayPeriod } = require("../../standardMiddleware/nextReplayPeriod")
 const { placeOCO } = require("../../standardMiddleware/placeOCO")
 const { placeOrder } = require("../../standardMiddleware/placeOrder")
 const { productFind } = require("../../standardMiddleware/productFind")
+const { replayComplete } = require("../../standardMiddleware/replayComplete")
 const { startOrderStrategy } = require("../../standardMiddleware/startOrderStrategy")
 const { dispatcher, pipeMiddleware } = require("../../utils/dispatcher")
 const { getSocket, getMdSocket, getReplaySocket } = require("../../websocket/utils")
@@ -11,7 +14,8 @@ const TdEvent = {
     Quote:      'quote',
     Chart:      'chart',
     Props:      'props',
-    Histogram:  'histogram'
+    Histogram:  'histogram',
+    Clock:      'clock'
 }
 
 const EntityType = {
@@ -41,13 +45,24 @@ class Strategy {
         let socket = getSocket()
         let mdSocket = getMdSocket()
         let replaySocket = getReplaySocket()
+        this._shouldRun = true
 
         const { barType, barInterval, contract, elementSizeUnit, timeRangeType, timeRangeValue, histogram, dev_mode, replay_periods } = props
         
         let self = this
-        const model = this.init(props)
-        let mw = pipeMiddleware(startOrderStrategy, placeOrder, placeOCO, productFind, ...this.mws)
-        const D = dispatcher({model, reducer: self.next.bind(self), mw })
+        const model = { ...this.init(props), current_period: 0 }
+        let mw = pipeMiddleware(
+            startOrderStrategy, 
+            placeOrder, 
+            placeOCO, 
+            productFind,
+            nextReplayPeriod,
+            replayComplete,
+            drawReplayStats,
+            ...this.mws
+        )
+
+        const D = dispatcher({ model, reducer: self.next.bind(self), mw })
 
         props.dispatcher = D
 
@@ -67,19 +82,20 @@ class Strategy {
                 })
                 effects = []
             }
-        }
+        }        
         
         if(dev_mode) {
             let disposerA, disposerB
             disposerA = replaySocket.checkReplaySession({
-                startTimestamp: replay_periods[0],
+                startTimestamp: replay_periods[0].start,
                 callback: (item) => {
                     if(item.checkStatus && item.checkStatus === 'OK') {
 
                         disposerB = replaySocket.initializeClock({
-                            startTimestamp: replay_periods[0],
-                            callback: () => {
-                                
+                            startTimestamp: replay_periods[0].start,
+                            callback: (item) => {
+                                if(item) return
+
                                 const disposerC = replaySocket.request({
                                     url: 'account/list',
                                     callback: (id, item) => {
@@ -93,62 +109,89 @@ class Strategy {
                                             process.env.SPEC = account.name
                                             process.env.USER_ID = account.userId
 
-                                            setupEventCatcher(replaySocket, replaySocket)
+                                            this._setupEventCatcher(replaySocket, replaySocket)
 
                                             disposerA()
                                             disposerB()
                                             disposerC()
-                                            console.log(socket.ws.listeners())
+                                            // console.log(socket.ws.listeners())
                                         }
                                     }
                                 })
                             }
                         })
-                    }
+                    } else throw new Error('Could not initialize replay session. Check that your replay periods are within a valid time frame.')
                 }
             })
         } else {
-            setupEventCatcher(socket, mdSocket)
+            this._setupEventCatcher(socket, mdSocket)
         }
 
-        function setupEventCatcher(socket, mdSocket) {
+        this._setupEventCatcher = function _setupEventCatcher(socket, mdSocket) {
+
+            // console.log(socket)
+            // console.log(mdSocket)
+
             socket.synchronize(data => {
                 if(data.users) {
+                    if(!this._shouldRun) return
+                    runSideFx()           
                     D.dispatch(TdEvent.UserSync, {
                         data,
                         props,
-                    })                    
+                    })         
                 }
                 else if(data.entityType) {
+                    if(!this._shouldRun) return
+                    runSideFx()
                     D.dispatch(TdEvent.Props, {
                         data,
                         props,
                     })
                 }
-                runSideFx()
+            })
+
+            socket.ws.addEventListener('message', msg => {
+                if(msg.data.slice(1)) {
+                    let data
+                    try {
+                        data = JSON.parse(msg.data.slice(1))
+                    } catch(err) {
+                        throw new Error(err)
+                    }
+                    data.forEach(item => {
+                        if(item.e && item.e === 'clock') {
+                            if(!this._shouldRun) return
+                            runSideFx()
+                            D.dispatch(TdEvent.Clock, { data: item.d, props })
+                        }
+                    })
+                }
             })
 
             mdSocket.subscribeDOM({
                 symbol: contract.name,
                 contractId: contract.id,
-                callback: data => {
+                callback: data => {              
+                    if(!this._shouldRun) return
+                    runSideFx()
                     D.dispatch(TdEvent.DOM, {
                         data,
                         props,
                     })
-                    runSideFx()
                 }
             })
 
             mdSocket.subscribeQuote({
                 symbol: contract.name,
                 contractId: contract.id,
-                callback: data => {
+                callback: data => {             
+                    if(!this._shouldRun) return
+                    runSideFx()
                     D.dispatch(TdEvent.Quote, {
                         data,
                         props,
                     })
-                    runSideFx()
                 }
             })
 
@@ -167,12 +210,13 @@ class Strategy {
                             ? timeRangeValue 
                             : timeRangeValue.toString()
                 },
-                callback: data => {
+                callback: data => {                    
+                    if(!this._shouldRun) return
+                    runSideFx()
                     D.dispatch(TdEvent.Chart, {
                         data,
                         props,
                     })
-                    runSideFx()
                 }
             })
         }
@@ -186,6 +230,47 @@ class Strategy {
     }
 
     next(prevState, [event, {data, props}]) { }
+
+    catchReplaySessionsDefault(prevState, [event, { data, props }]) {
+
+        if(event === 'stop') {
+            console.log('[CALLED STOP]')
+            // const socket = getReplaySocket()
+            // const ws = socket.getSocket()
+            // ws.close()
+            // ws.removeAllListeners('message')
+            this._shouldRun = false
+            return
+        }
+
+        if(event === 'replay/resetEventHandlers') {
+            const replaySocket = getReplaySocket()
+            console.log(replaySocket)
+            console.log('[CALLED RESET HANDLERS]')
+            this._setupEventCatcher(replaySocket, replaySocket)
+            return { state: prevState }
+        }
+
+        if(event === TdEvent.Clock) {
+
+            console.log(data)
+
+            const { current_period } = prevState
+            const { replay_periods } = props
+            const { t, s } = JSON.parse(data)
+            
+
+            const curStop = new Date(replay_periods[current_period]?.stop)?.toJSON()
+
+            if(curStop && new Date(t).getTime() > new Date(curStop).getTime()) {
+                console.log('[TRIED NEXT REPLAY]')
+                return { 
+                    state: { ...prevState, current_period: current_period+1 },
+                    effects: [{ event: 'replay/nextReplayPeriod', data: { props } }]
+                }   
+            }
+        }
+    }
 
     static params = {
         contract: 'object',

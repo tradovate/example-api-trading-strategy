@@ -75,7 +75,7 @@ const dispatcher = ({model = null, reducer = null, mw = null}) => {
         }
 
         while(queue.length > 0) {
-            let a = queue.pop()
+            let a = queue.shift()
             result = mw(store.state, a)
             if(reducer)
                 store = reducer(store.state, result)
