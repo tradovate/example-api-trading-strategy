@@ -19,9 +19,9 @@ const drawReplayStats = (state, action) => {
 
 
         drawToConsole({
-            finalPos,
-            totalBought: bought,
-            totalSold: sold,
+            finalPos: finalPos || 0,
+            totalBought: bought || 0,
+            totalSold: sold || 0,
             openPnL: calculatePnL({
                 price: buffer.last()?.price || buffer.last()?.close || 0, 
                 contract,

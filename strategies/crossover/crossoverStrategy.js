@@ -37,8 +37,8 @@ class CrossoverStrategy extends Strategy {
     
     next(prevState, [event, payload]) {
 
-        console.log('[NEXT]')
-        console.log(JSON.stringify(prevState, null, 2))
+        // console.log('[NEXT]')
+        // console.log(JSON.stringify(prevState, null, 2))
 
         switch(event) {
             case TdEvent.Chart: {
