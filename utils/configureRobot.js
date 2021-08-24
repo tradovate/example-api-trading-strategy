@@ -3,7 +3,7 @@ const { askQuestion } = require("./askQuestion")
 const { confirm } = require("./confirm")
 const { pressEnterToContinue } = require("./enterToContinue")
 
-const configureRobot = async (ALL_STRATEGIES) => {
+const configureRobot = async (ALL_STRATEGIES, REPLAY_TIMES) => {
 
     console.clear()    
     
@@ -61,6 +61,8 @@ const configureRobot = async (ALL_STRATEGIES) => {
     } 
 
     const params = await getParams()
+    params.dev_mode = !!REPLAY_TIMES[0] 
+    params.replay_periods = REPLAY_TIMES
     console.log(params)
     const concreteStrategy = new StrategyType(params)
 

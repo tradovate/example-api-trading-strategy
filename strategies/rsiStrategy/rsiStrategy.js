@@ -21,8 +21,8 @@ class RsiStrategy extends Strategy {
         this.addMiddleware(drawEffect)
         return {
             mode: CrossoverMode.Watch,
-            strengthIndex: relativeStrengthIndex(props.longPeriod),
-            hlv: highLowVariance(props.longPeriod),
+            strengthIndex: relativeStrengthIndex(props.period),
+            hlv: highLowVariance(props.period),
             product: null,
             position: null,
             realizedPnL: 0,

@@ -80,11 +80,9 @@ async function main() {
         ])
     }
     
-    const Strategy = await configureRobot(ALL_STRATEGIES)
+    const Strategy = await configureRobot(ALL_STRATEGIES, REPLAY_TIMES)
     
     //COMMENT ABOVE, UNCOMMENT BELOW you want to parameterize the strategy here instead of via console.
-    // const minus24h = new Date(new Date().getTime() - 1000*60*60*24)
-    // minus24h.setHours(7)
     
     // let contract1 = await askForContract()
 
