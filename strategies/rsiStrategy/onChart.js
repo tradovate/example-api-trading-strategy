@@ -2,13 +2,16 @@ const { CrossoverMode } = require("../common/crossoverMode")
 
 const onChart = (prevState, {data, props}) => {
 
-    const { mode, buffer, hlv, tlc, } = prevState
+    const { mode, buffer, hlv, strengthIndex, } = prevState
     const { contract, orderQuantity } = props
     
     buffer.push(data)        
-    
-    const { variance } = hlv(hlv.state, buffer.getData()).state
-    const { negativeCrossover, positiveCrossover } = tlc(tlc.state, buffer.getData()).state
+    const buffData = buffer.getData()
+
+    const lastHlv = hlv.state
+    const lastRsi = strengthIndex.state
+    const { variance } = hlv(lastHlv, buffData).state
+    const { overbought, oversold } = strengthIndex(lastRsi, buffData).state
 
     const round_s = num => Math.round((num + Number.EPSILON) * 100) / 100
 
@@ -31,7 +34,7 @@ const onChart = (prevState, {data, props}) => {
         orderType: 'Market',
     }
     
-    if(mode === CrossoverMode.Watch && negativeCrossover) {
+    if(mode === CrossoverMode.Watch && overbought) {
         return {
             state: {
                 ...prevState,
@@ -47,12 +50,12 @@ const onChart = (prevState, {data, props}) => {
                         entryVersion,
                     }
                 },
-                { event: 'crossover/draw' }
+                { event: 'rsi/draw' }
             ]
         }
     }
 
-    if(mode === CrossoverMode.Watch && positiveCrossover) {
+    if(mode === CrossoverMode.Watch && oversold) {
         return {
             state: {
                 ...prevState,
@@ -67,12 +70,16 @@ const onChart = (prevState, {data, props}) => {
                         brackets: [longBracket],
                         entryVersion
                     }
-                }
+                },
+                { event: 'rsi/draw' }
             ]
         }
     }
 
-    return { state: prevState }
+    return { 
+        state: prevState,
+        effects: [{ event: 'rsi/draw' }]
+    }
 }
 
 module.exports = { onChart }

@@ -1,14 +1,14 @@
-const highLowVariance = require("../../modules/highLowVariance")
-const twoLineCrossover = require("../../modules/twoLineCrossover")
+const highLowVariance = require("../../indicators/highLowVariance")
+const twoLineCrossover = require("../../indicators/twoLineCrossover")
 
 const { DataBuffer, BarsTransformer } = require("../../utils/dataBuffer")
 const { Strategy, TdEvent } = require("../strategy/strategy")
 const { onUserSync } = require("./onUserSync")
 const { onProps } = require("./onProps")
 const { onChart } = require("./onChart")
-const { CrossoverMode } = require("./crossoverMode")
+const { CrossoverMode } = require("../common/crossoverMode")
 const { drawEffect } = require("./drawEffect")
-const { onProductFound } = require("./onProductFound")
+const { onProductFound } = require("../common/onProductFound")
 const { onReplayComplete } = require("./onReplayComplete")
 
 

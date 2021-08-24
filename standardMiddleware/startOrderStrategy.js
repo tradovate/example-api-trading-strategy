@@ -30,8 +30,7 @@ const startOrderStrategy = (state, action) => {
             body,
             callback: (id, r) => {
                 if(id === r.id) {
-                    console.log('Started order strategy...')
-                    writeToLog(r) 
+                    console.log('Started order strategy...') 
                     dispose()
                 }
             }

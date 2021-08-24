@@ -7,50 +7,28 @@ const { replayComplete } = require("../../standardMiddleware/replayComplete")
 const { startOrderStrategy } = require("../../standardMiddleware/startOrderStrategy")
 const { dispatcher, pipeMiddleware } = require("../../utils/dispatcher")
 const { getSocket, getMdSocket, getReplaySocket } = require("../../websocket/utils")
-
-const TdEvent = {
-    DOM:        'dom',
-    UserSync:   'usersyncinit',
-    Quote:      'quote',
-    Chart:      'chart',
-    Props:      'props',
-    Histogram:  'histogram',
-    Clock:      'clock'
-}
-
-const EntityType = {
-    Position:           'position',
-    CashBalance:        'cashBalance',
-    Account:            'account',
-    MarginSnapshot:     'marginSnapshot',
-    Currency:           'currency',
-    FillPair:           'fillPair',
-    Order:              'order',
-    Contract:           'contract',
-    ContractMaturity:   'contractMaturity',
-    Product:            'product',
-    Exchange:           'exchange',
-    Command:            'command',
-    CommandReport:      'commandReport',
-    ExecutionReport:    'executionReport',
-    OrderVersion:       'orderVersion',
-    Fill:               'fill', 
-    OrderStrategy:      'orderStrategy',
-    OrderStrategyLink:  'orderStrategyLink',
-    ContractGroup:      'contractGroup'
-}
+const { TdEvent } = require("./tdEvent")
 
 class Strategy {
+
     constructor(props) {
-        let socket = getSocket()
-        let mdSocket = getMdSocket()
-        let replaySocket = getReplaySocket()
+        //Sockets are global, we need to retrieve them like so
+        let socket          = getSocket()
+        let mdSocket        = getMdSocket()
+        let replaySocket    = getReplaySocket()
+
+        //turned off via { event: 'stop' } effect
         this._shouldRun = true
 
         const { barType, barInterval, contract, elementSizeUnit, timeRangeType, timeRangeValue, histogram, dev_mode, replay_periods } = props
         
+        //required for class method binding within dispatcher D
         let self = this
-        const model = { ...this.init(props), current_period: 0 }
+
+        //use subclass' init function to make the model
+        const model = { ...this.init(props), current_period: dev_mode ? 0 : undefined }
+
+        //common middleware composition. These are called in order per dispatch
         let mw = pipeMiddleware(
             startOrderStrategy, 
             placeOrder, 
@@ -59,14 +37,17 @@ class Strategy {
             nextReplayPeriod,
             replayComplete,
             drawReplayStats,
-            ...this.mws
+            ...(this.mws || [])
         )
 
+        //builds a dispatcher from our model, using subclass' next function as the reducer,
+        //and the above middleware composition for side effecting functions (websocket reqs, etc)
         const D = dispatcher({ model, reducer: self.next.bind(self), mw })
 
-        props.dispatcher = D
+        props.dispatcher = D //add dispatcher to 'props' dependencies object.
 
-        const runSideFx = () => {
+        this._runSideFx = () => {
+            // console.log(D)
             let effects = D.effects()
             
             if(effects && effects.length && effects.length > 0) {
@@ -84,11 +65,12 @@ class Strategy {
             }
         }        
         
+        //is this a backtesting session?
         if(dev_mode) {
             let disposerA, disposerB
             disposerA = replaySocket.checkReplaySession({
                 startTimestamp: replay_periods[0].start,
-                callback: (item) => {
+                callback: (item) => { //TODO: cb hell, this should be reorganized eventually
                     if(item.checkStatus && item.checkStatus === 'OK') {
 
                         disposerB = replaySocket.initializeClock({
@@ -109,7 +91,7 @@ class Strategy {
                                             process.env.SPEC = account.name
                                             process.env.USER_ID = account.userId
 
-                                            this._setupEventCatcher(replaySocket, replaySocket)
+                                            this._setupEventCatcher(D, replaySocket, replaySocket, props)
 
                                             disposerA()
                                             disposerB()
@@ -120,108 +102,107 @@ class Strategy {
                                 })
                             }
                         })
-                    } else throw new Error('Could not initialize replay session. Check that your replay periods are within a valid time frame.')
+                    } else throw new Error('Could not initialize replay session. Check that your replay periods are within a valid time frame and that you have Market Replay access.')
                 }
             })
         } else {
-            this._setupEventCatcher(socket, mdSocket)
-        }
-
-        this._setupEventCatcher = function _setupEventCatcher(socket, mdSocket) {
-
-            // console.log(socket)
-            // console.log(mdSocket)
-
-            socket.synchronize(data => {
-                if(data.users) {
-                    if(!this._shouldRun) return
-                    runSideFx()           
-                    D.dispatch(TdEvent.UserSync, {
-                        data,
-                        props,
-                    })         
-                }
-                else if(data.entityType) {
-                    if(!this._shouldRun) return
-                    runSideFx()
-                    D.dispatch(TdEvent.Props, {
-                        data,
-                        props,
-                    })
-                }
-            })
-
-            socket.ws.addEventListener('message', msg => {
-                if(msg.data.slice(1)) {
-                    let data
-                    try {
-                        data = JSON.parse(msg.data.slice(1))
-                    } catch(err) {
-                        throw new Error(err)
-                    }
-                    data.forEach(item => {
-                        if(item.e && item.e === 'clock') {
-                            if(!this._shouldRun) return
-                            runSideFx()
-                            D.dispatch(TdEvent.Clock, { data: item.d, props })
-                        }
-                    })
-                }
-            })
-
-            mdSocket.subscribeDOM({
-                symbol: contract.name,
-                contractId: contract.id,
-                callback: data => {              
-                    if(!this._shouldRun) return
-                    runSideFx()
-                    D.dispatch(TdEvent.DOM, {
-                        data,
-                        props,
-                    })
-                }
-            })
-
-            mdSocket.subscribeQuote({
-                symbol: contract.name,
-                contractId: contract.id,
-                callback: data => {             
-                    if(!this._shouldRun) return
-                    runSideFx()
-                    D.dispatch(TdEvent.Quote, {
-                        data,
-                        props,
-                    })
-                }
-            })
-
-            mdSocket.getChart({
-                symbol: contract.name,
-                chartDescription: {
-                    underlyingType: barType,
-                    elementSize: barType === 'Tick' ? 1 : barInterval,
-                    elementSizeUnit,
-                    withHistogram: histogram === 'true'
-                },
-                timeRange: {
-                    [timeRangeType]: 
-                        timeRangeType === 'asMuchAsElements' 
-                        || timeRangeType === 'closestTickId' 
-                            ? timeRangeValue 
-                            : timeRangeValue.toString()
-                },
-                callback: data => {                    
-                    if(!this._shouldRun) return
-                    runSideFx()
-                    D.dispatch(TdEvent.Chart, {
-                        data,
-                        props,
-                    })
-                }
-            })
-        }
+            this._setupEventCatcher(D, socket, mdSocket, props)
+        }        
     }
 
+    _setupEventCatcher(D, socket, mdSocket, props) {
+        const { contract, barType, barInterval, elementSizeUnit, timeRangeType, timeRangeValue, histogram } = props
+        // console.log(socket)
+        // console.log(mdSocket)
+
+        socket.synchronize(data => {
+            if(data.users) {
+                if(!this._shouldRun) return
+                this._runSideFx()           
+                D.dispatch(TdEvent.UserSync, {
+                    data,
+                    props,
+                })         
+            }
+            else if(data.entityType) {
+                if(!this._shouldRun) return
+                this._runSideFx()
+                D.dispatch(TdEvent.Props, {
+                    data,
+                    props,
+                })
+            }
+        })
+
+        socket.ws.addEventListener('message', msg => {
+            if(msg.data.slice(1)) {
+                let data
+                try {
+                    data = JSON.parse(msg.data.slice(1))
+                } catch(err) {
+                    throw new Error(err)
+                }
+                data.forEach(item => {
+                    if(item.e && item.e === 'clock') {
+                        if(!this._shouldRun) return
+                        this._runSideFx()
+                        D.dispatch(TdEvent.Clock, { data: item.d, props })
+                    }
+                })
+            }
+        })
+
+        mdSocket.subscribeDOM({
+            symbol: contract.name,
+            contractId: contract.id,
+            callback: data => {              
+                if(!this._shouldRun) return
+                this._runSideFx()
+                D.dispatch(TdEvent.DOM, {
+                    data,
+                    props,
+                })
+            }
+        })
+
+        mdSocket.subscribeQuote({
+            symbol: contract.name,
+            contractId: contract.id,
+            callback: data => {             
+                if(!this._shouldRun) return
+                this._runSideFx()
+                D.dispatch(TdEvent.Quote, {
+                    data,
+                    props,
+                })
+            }
+        })
+
+        mdSocket.getChart({
+            symbol: contract.name,
+            chartDescription: {
+                underlyingType: barType,
+                elementSize: barType === 'Tick' ? 1 : barInterval,
+                elementSizeUnit,
+                withHistogram: histogram === 'true'
+            },
+            timeRange: {
+                [timeRangeType]: 
+                    timeRangeType === 'asMuchAsElements' 
+                    || timeRangeType === 'closestTickId' 
+                        ? timeRangeValue 
+                        : timeRangeValue.toString()
+            },
+            callback: data => {                    
+                if(!this._shouldRun) return
+                this._runSideFx()
+                D.dispatch(TdEvent.Chart, {
+                    data,
+                    props,
+                })
+            }
+        })
+    }
     init(props) { }
 
     addMiddleware(...mws) {
@@ -243,7 +224,7 @@ class Strategy {
             return
         }
 
-        if(event === 'replay/resetEventHandlers') {
+        if(event === TdEvent.ReplayReset) {
             const replaySocket = getReplaySocket()
             console.log(replaySocket)
             console.log('[CALLED RESET HANDLERS]')
@@ -266,7 +247,7 @@ class Strategy {
                 console.log('[TRIED NEXT REPLAY]')
                 return { 
                     state: { ...prevState, current_period: current_period+1 },
-                    effects: [{ event: 'replay/nextReplayPeriod', data: { props } }]
+                    effects: [{ event: TdEvent.NextReplay, data: { props } }]
                 }   
             }
         }
@@ -309,4 +290,4 @@ class Strategy {
     }
 }
 
-module.exports = { Strategy, TdEvent, EntityType }
+module.exports = { Strategy }

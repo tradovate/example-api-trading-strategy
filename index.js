@@ -6,6 +6,9 @@ const { askForContract } = require("./utils/askForContract")
 const { ReplaySocket } = require("./websocket/ReplaySocket")
 const { getSocket, getMdSocket, getReplaySocket, connectSockets } = require("./websocket/utils")
 const { askForReplay } = require("./utils/askForReplay")
+const { PriceDisplayStrategy } = require("./strategies/priceDisplay/priceDisplayStrategy")
+const { PriceDisplayStrategyFP } = require("./strategies/priceDisplayFP/priceDisplayStrategyFP")
+const { RsiStrategy } = require("./strategies/rsiStrategy/rsiStrategy")
 
 //ENVIRONMENT VARIABLES ---------------------------------------------------------------------------------------
 
@@ -31,6 +34,7 @@ process.env.CID         = 0
 
 const ALL_STRATEGIES = {
     'Crossover Strategy': CrossoverStrategy,
+    'RSI Strategy': RsiStrategy,
     'Your Custom Strategy': YourCustomStrategy
 }
 
@@ -75,130 +79,44 @@ async function main() {
             mdSocket.connect(process.env.MD_URL)
         ])
     }
-
-    // const Strategy = await configureRobot(ALL_STRATEGIES)
-
+    
+    const Strategy = await configureRobot(ALL_STRATEGIES)
+    
     //COMMENT ABOVE, UNCOMMENT BELOW you want to parameterize the strategy here instead of via console.
     // const minus24h = new Date(new Date().getTime() - 1000*60*60*24)
     // minus24h.setHours(7)
-
-    let contract1 = await askForContract()
-
-    while(!contract1) {
-        contract1 = await askForContract(true)
-    }
-
-    // let contract2 = await askForContract()
-
-    // while(!contract2) {
-    //     contract2 = await askForContract(true)
-    // }
-
-    // let contract3 = await askForContract()
-
-    // while(!contract3) {
-    //     contract3 = await askForContract(true)
-    // }
-
-    // let contract4 = await askForContract()
-
-    // while(!contract4) {
-    //     contract4 = await askForContract(true)
-    // }
-
-    // let contract5 = await askForContract()
-
-    // while(!contract5) {
-    //     contract5 = await askForContract(true)
-    // }
-
-    const strategy1 = new CrossoverStrategy({
-        contract: contract1,
-        barType: 'MinuteBar',
-        barInterval: 1,
-        elementSizeUnit: 'UnderlyingUnits',
-        histogram: false,
-        timeRangeType: 'asMuchAsElements',
-        timeRangeValue: 41,
-        longPeriod: 13,
-        shortPeriod: 5,
-        variancePeriod: 34,
-        orderQuantity: 1,
-        dev_mode: !!maybeReplayString,
-        replay_periods: REPLAY_TIMES
-    })
-
-    // const strategy2 = new CrossoverStrategy({
-    //     contract: contract2,
-    //     barType: 'MinuteBar',
-    //     barInterval: 5,
-    //     elementSizeUnit: 'UnderlyingUnits',
-    //     histogram: false,
-    //     timeRangeType: 'asMuchAsElements',
-    //     timeRangeValue: 34,
-    //     longPeriod: 13,
-    //     shortPeriod: 5,
-    //     variancePeriod: 34,
-    //     orderQuantity: 1,
-    //     dev_mode: !!maybeReplayString,
-    //     replay_periods: [
-    //         maybeReplayString
-    //     ]
-    // })
     
-    // const strategy3 = new CrossoverStrategy({
-    //     contract: contract3,
+    // let contract1 = await askForContract()
+
+    // while(!contract1) {
+    //     contract1 = await askForContract(true)
+    // }
+
+    // const rsi = new RsiStrategy({
+    //     contract: contract1,
     //     barType: 'MinuteBar',
-    //     barInterval: 5,
+    //     barInterval: 30,
     //     elementSizeUnit: 'UnderlyingUnits',
     //     histogram: false,
     //     timeRangeType: 'asMuchAsElements',
-    //     timeRangeValue: 34,
-    //     longPeriod: 13,
-    //     shortPeriod: 5,
-    //     variancePeriod: 34,
-    //     orderQuantity: 1,
+    //     timeRangeValue: 14,
     //     dev_mode: !!maybeReplayString,
-    //     replay_periods: [
-    //         maybeReplayString
-    //     ]
+    //     replay_periods: REPLAY_TIMES,
+    //     period: 14,
+    //     orderQuantity: 1,
     // })
 
-    // const strategy4 = new CrossoverStrategy({
-    //     contract: contract4,
+    // const display = new PriceDisplayStrategyFP({
+    //     contract: contract1,
     //     barType: 'MinuteBar',
-    //     barInterval: 5,
+    //     barInterval: 1,
     //     elementSizeUnit: 'UnderlyingUnits',
     //     histogram: false,
     //     timeRangeType: 'asMuchAsElements',
-    //     timeRangeValue: 34,
-    //     longPeriod: 13,
-    //     shortPeriod: 5,
-    //     variancePeriod: 34,
-    //     orderQuantity: 1,
+    //     timeRangeValue: 1,
     //     dev_mode: !!maybeReplayString,
-    //     replay_periods: [
-    //         maybeReplayString
-    //     ]
-    // })
-
-    // const strategy5 = new CrossoverStrategy({
-    //     contract: contract5,
-    //     barType: 'MinuteBar',
-    //     barInterval: 5,
-    //     elementSizeUnit: 'UnderlyingUnits',
-    //     histogram: false,
-    //     timeRangeType: 'asMuchAsElements',
-    //     timeRangeValue: 34,
-    //     longPeriod: 13,
-    //     shortPeriod: 5,
-    //     variancePeriod: 34,
-    //     orderQuantity: 1,
-    //     dev_mode: !!maybeReplayString,
-    //     replay_periods: [
-    //         maybeReplayString
-    //     ]
-    // })
+    //     replay_periods: REPLAY_TIMES
+    // })    
 }
 
 main()

@@ -1,6 +1,5 @@
-const { writeToLog } = require("../../utils/helpers")
-const { CrossoverMode } = require("../common/crossoverMode")
 const { EntityType } = require("../strategy/entityType")
+const { CrossoverMode } = require("../common/crossoverMode")
 
 const onProps = (prevState, {data, props}) => {
     const { contract } = props
@@ -37,7 +36,7 @@ const onProps = (prevState, {data, props}) => {
                 ...prevState,
                 realizedPnL
             },
-            effects: [{ event: 'crossover/draw' }]
+            effects: [{ event: 'rsi/draw' }]
         }
     }
 
