@@ -2,14 +2,15 @@ const highLowVariance = require("../../indicators/highLowVariance")
 const twoLineCrossover = require("../../indicators/twoLineCrossover")
 
 const { DataBuffer, BarsTransformer } = require("../../utils/dataBuffer")
-const { Strategy, TdEvent } = require("../strategy/strategy")
+const { Strategy } = require("../strategy/strategy")
 const { onUserSync } = require("./onUserSync")
 const { onProps } = require("./onProps")
 const { onChart } = require("./onChart")
-const { CrossoverMode } = require("../common/crossoverMode")
-const { drawEffect } = require("./drawEffect")
+const { LongShortMode } = require("../common/longShortMode")
+const { drawEffect } = require("./crossoverDrawEffect")
 const { onProductFound } = require("../common/onProductFound")
 const { onReplayComplete } = require("./onReplayComplete")
+const { TdEvent } = require("../strategy/tdEvent")
 
 
 
@@ -25,7 +26,7 @@ class CrossoverStrategy extends Strategy {
     init(props) {
         this.addMiddleware(drawEffect)
         return {
-            mode:       CrossoverMode.Watch,
+            mode:       LongShortMode.Watch,
             buffer:     new DataBuffer(BarsTransformer),
             tlc:        twoLineCrossover(props.shortPeriod, props.longPeriod),
             hlv:        highLowVariance(props.variancePeriod),
@@ -53,11 +54,11 @@ class CrossoverStrategy extends Strategy {
                 return onUserSync(prevState, payload)
             }
 
-            case 'product/found': {
+            case TdEvent.ProductFound: {
                 return onProductFound(prevState, payload)
             }
 
-            case 'replay/showStats': {
+            case TdEvent.ReplayComplete: {
                 return onReplayComplete(prevState, payload)
             }
 

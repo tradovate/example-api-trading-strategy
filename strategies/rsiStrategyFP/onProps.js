@@ -1,5 +1,5 @@
 const { EntityType } = require("../strategy/entityType")
-const { CrossoverMode } = require("../common/crossoverMode")
+const { LongShortMode } = require("../common/longShortMode")
 
 const onProps = (prevState, {data, props}) => {
     const { contract } = props
@@ -11,9 +11,9 @@ const onProps = (prevState, {data, props}) => {
             state: {
                 ...prevState,
                 mode: 
-                    netPos > 0  ? CrossoverMode.Long
-                :   netPos < 0  ? CrossoverMode.Short
-                :   /*else*/      CrossoverMode.Watch,
+                    netPos > 0  ? LongShortMode.Long
+                :   netPos < 0  ? LongShortMode.Short
+                :   /*else*/      LongShortMode.Watch,
                 position: entity
             },
             effects: [

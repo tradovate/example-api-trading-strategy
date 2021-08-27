@@ -1,4 +1,4 @@
-const { CrossoverMode } = require("../common/crossoverMode")
+const { LongShortMode } = require("../common/longShortMode")
 
 const onChart = (prevState, {data, props}) => {
 
@@ -13,19 +13,19 @@ const onChart = (prevState, {data, props}) => {
     const { variance } = hlv(lastHlv, buffData).state
     const { overbought, oversold } = strengthIndex(lastRsi, buffData).state
 
-    const round_s = num => Math.round((num + Number.EPSILON) * 100) / 100
+    const roundEps = num => Math.round((num + Number.EPSILON) * 100) / 100
 
     const longBracket = {
         qty: orderQuantity,
-        profitTarget: round_s(variance/1.33),
-        stopLoss: round_s(-variance/5),
+        profitTarget: roundEps(variance/1.33),
+        stopLoss: roundEps(-variance/5),
         trailingStop: true
     }
       
     const shortBracket = {
         qty: orderQuantity,
-        profitTarget: round_s(-variance/1.33),
-        stopLoss: round_s(variance/5),
+        profitTarget: roundEps(-variance/1.33),
+        stopLoss: roundEps(variance/5),
         trailingStop: true
     }
 
@@ -34,11 +34,11 @@ const onChart = (prevState, {data, props}) => {
         orderType: 'Market',
     }
     
-    if(mode === CrossoverMode.Watch && overbought) {
+    if(mode === LongShortMode.Watch && overbought) {
         return {
             state: {
                 ...prevState,
-                mode: CrossoverMode.Short,
+                mode: LongShortMode.Short,
             },
             effects: [
                 {
@@ -55,11 +55,11 @@ const onChart = (prevState, {data, props}) => {
         }
     }
 
-    if(mode === CrossoverMode.Watch && oversold) {
+    if(mode === LongShortMode.Watch && oversold) {
         return {
             state: {
                 ...prevState,
-                mode: CrossoverMode.Long,
+                mode: LongShortMode.Long,
             },
             effects: [
                 {

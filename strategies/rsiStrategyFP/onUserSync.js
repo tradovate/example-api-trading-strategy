@@ -1,4 +1,4 @@
-const { CrossoverMode } = require("../common/crossoverMode")
+const { LongShortMode } = require("../common/longShortMode")
 
 const onUserSync = (prevState, {data, props}) => {
 
@@ -13,9 +13,9 @@ const onUserSync = (prevState, {data, props}) => {
         state: {
             ...prevState,
             mode: 
-                position && position.netPos > 0 ? CrossoverMode.Long 
-            :   position && position.netPos < 0 ? CrossoverMode.Short 
-            :   /*else*/                          CrossoverMode.Watch,
+                position && position.netPos > 0 ? LongShortMode.Long 
+            :   position && position.netPos < 0 ? LongShortMode.Short 
+            :   /*else*/                          LongShortMode.Watch,
             product,
             position,
             realizedPnL

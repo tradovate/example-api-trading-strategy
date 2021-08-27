@@ -1,64 +1,57 @@
-const highLowVariance = require("../../indicators/highLowVariance");
-const relativeStrengthIndex = require('../../indicators/rsi')
+const { Strategy } = require('../strategy/strategy')
+const { TdEvent } = require('../strategy/tdEvent')
 
-const { DataBuffer, BarsTransformer } = require("../../utils/dataBuffer");
-const { CrossoverMode } = require("../common/crossoverMode");
-const { onProductFound } = require("../common/onProductFound");
-const { Strategy } = require("../strategy/strategy");
-const { TdEvent } = require("../strategy/tdEvent");
-const { drawEffect } = require("./drawEffect");
-const { onChart } = require("./onChart");
-const { onProps } = require("./onProps");
-const { onUserSync } = require("./onUserSync");
-
-
-class RsiStrategy extends Strategy {
-    constructor(props) {
-        super(props)
-    }
+class YourCustomStrategy extends Strategy {
+    constructor(params) {
+        super(params)	
+    }		
 
     init(props) {
-        this.addMiddleware(drawEffect)
-        return {
-            mode: CrossoverMode.Watch,
-            strengthIndex: relativeStrengthIndex(props.period),
-            hlv: highLowVariance(props.period),
-            product: null,
-            position: null,
-            realizedPnL: 0,
-            buffer: new DataBuffer(BarsTransformer)
-        }
+        return {}
     }
 
-    next(prevState, [event, payload]) {
+    next(state, [event, payload]) {
         switch(event) {
             case TdEvent.Chart: {
-                return onChart(prevState, payload)
+                console.log('got chart event')
+                break
             }
 
-            case TdEvent.Props: {
-                return onProps(prevState, payload)
+            case TdEvent.DOM: {
+                console.log('got DOM event')
+                break
+            }
+
+            case TdEvent.Histogram: {
+                console.log('got histogram event')
+                break
+            }
+
+            case TdEvent.Quote: {
+                console.log('got quote event')
+                break
             }
 
             case TdEvent.UserSync: {
-                return onUserSync(prevState, payload)
+                console.log('got user sync event')
+                break
             }
 
-            case 'product/found': {
-                return onProductFound(prevState, payload)
+            case TdEvent.Props: {
+                console.log('got props event')
+                break
             }
 
             default: {
-                return { state: prevState }
+                return state
             }
         }
     }
 
     static params = {
         ...super.params,
-        period:     'int',
-        orderQuantity:  'int',
     }
+
 }
 
-module.exports = { RsiStrategy }
+module.exports = { YourCustomStrategy }

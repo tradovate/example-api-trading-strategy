@@ -1,4 +1,4 @@
-const { CrossoverMode } = require("../common/crossoverMode")
+const { LongShortMode } = require("../common/longShortMode")
 
 const onChart = (prevState, {data, props}) => {
 
@@ -31,11 +31,11 @@ const onChart = (prevState, {data, props}) => {
         orderType: 'Market',
     }
     
-    if(mode === CrossoverMode.Watch && negativeCrossover) {
+    if(mode === LongShortMode.Watch && negativeCrossover) {
         return {
             state: {
                 ...prevState,
-                mode: CrossoverMode.Short,
+                mode: LongShortMode.Short,
             },
             effects: [
                 {
@@ -52,11 +52,11 @@ const onChart = (prevState, {data, props}) => {
         }
     }
 
-    if(mode === CrossoverMode.Watch && positiveCrossover) {
+    if(mode === LongShortMode.Watch && positiveCrossover) {
         return {
             state: {
                 ...prevState,
-                mode: CrossoverMode.Long,
+                mode: LongShortMode.Long,
             },
             effects: [
                 {

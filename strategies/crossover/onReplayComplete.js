@@ -1,10 +1,11 @@
+const { TdEvent } = require("../strategy/tdEvent")
+
 const onReplayComplete = (prevState,{data, props}) => {
-    console.log('[CALLED ONREPLAYCOMPLETE HANDLER]')
     return {
         state: prevState,
         effects: [
             { 
-                event: 'replay/drawStats',
+                event: TdEvent.ReplayDrawStats,
                 data: {
                     data, props
                 }
