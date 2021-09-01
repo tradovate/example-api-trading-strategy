@@ -1,13 +1,13 @@
-const { drawReplayStats } = require("../../standardMiddleware/drawReplayStats")
-const { nextReplayPeriod } = require("../../standardMiddleware/nextReplayPeriod")
-const { placeOCO } = require("../../standardMiddleware/placeOCO")
-const { placeOrder } = require("../../standardMiddleware/placeOrder")
-const { productFind } = require("../../standardMiddleware/productFind")
-const { replayComplete } = require("../../standardMiddleware/replayComplete")
-const { startOrderStrategy } = require("../../standardMiddleware/startOrderStrategy")
-const { dispatcher, pipeMiddleware } = require("../../utils/dispatcher")
-const { getSocket, getMdSocket, getReplaySocket } = require("../../websocket/utils")
-const { TdEvent } = require("./tdEvent")
+const { drawReplayStats }                           = require("../../standardMiddleware/drawReplayStats")
+const { nextReplayPeriod }                          = require("../../standardMiddleware/nextReplayPeriod")
+const { placeOCO }                                  = require("../../standardMiddleware/placeOCO")
+const { placeOrder }                                = require("../../standardMiddleware/placeOrder")
+const { productFind }                               = require("../../standardMiddleware/productFind")
+const { replayComplete }                            = require("../../standardMiddleware/replayComplete")
+const { startOrderStrategy }                        = require("../../standardMiddleware/startOrderStrategy")
+const { dispatcher, pipeMiddleware }                = require("../../utils/dispatcher")
+const { getSocket, getMdSocket, getReplaySocket }   = require("../../websocket/utils")
+const { TdEvent }                                   = require("./tdEvent")
 
 class Strategy {
 
@@ -61,7 +61,6 @@ class Strategy {
                         D.dispatch(fx.event, {data: fx.data, props})
                     }
                 })
-                effects = []
             }
         }        
         
@@ -112,8 +111,6 @@ class Strategy {
 
     _setupEventCatcher(D, socket, mdSocket, props) {
         const { contract, barType, barInterval, elementSizeUnit, timeRangeType, timeRangeValue, histogram } = props
-        // console.log(socket)
-        // console.log(mdSocket)
 
         socket.synchronize(data => {
             if(data.users) {
@@ -210,7 +207,13 @@ class Strategy {
         mws.forEach(mw => this.mws.push(mw))
     }
 
-    next(prevState, [event, {data, props}]) { }
+    next(prevState, [event, {data, props}]) {
+        if(prevState.indicators && prevState.buffer) {
+            for(k of Object.keys(prevState.indicators)) {
+                prevState.indicators[k](prevState, buffer.getData())
+            }
+        }
+    }
 
     catchReplaySessionsDefault(prevState, [event, { data, props }]) {
 

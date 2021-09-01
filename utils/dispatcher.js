@@ -49,7 +49,7 @@ const dispatcher = ({model = null, reducer = null, mw = null}) => {
     let dispatching = false
     
     const state = () => store.state
-    const effects = () => store.effects  
+    const effects = () => store.effects || []
     
     //[event: string, data?: any]
     const dispatch = (event, data) => { 
@@ -59,6 +59,8 @@ const dispatcher = ({model = null, reducer = null, mw = null}) => {
         // console.log('[raw dispatcher store value]: ' +JSON.stringify(store, null, 2))
         // console.log('[FROM DISPATCHER -- EVT]: ' + event)
         // console.log('[FROM DISPATCHER - DATA]: ' + JSON.stringify(data, null, 2))
+
+        console.log(effects())
 
         if(dispatching) {
             queue.push(action)

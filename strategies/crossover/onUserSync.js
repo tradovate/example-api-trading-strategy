@@ -5,8 +5,8 @@ const onUserSync = (prevState, {data, props}) => {
     const { contract } = props
     const { positions, products, cashBalances } = data
     
-    let product = products.find(p => contract.name.startsWith(p.name))
-    const position = positions.find(pos => pos.contractId === contract.id)
+    let product     = products.find(p => contract.name.startsWith(p.name))
+    const position  = positions.find(pos => pos.contractId === contract.id)
     let realizedPnL = cashBalances[0]?.realizedPnL || 0
 
     return {

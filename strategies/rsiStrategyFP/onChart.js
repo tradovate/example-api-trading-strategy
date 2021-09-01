@@ -2,7 +2,7 @@ const { LongShortMode } = require("../common/longShortMode")
 
 const onChart = (prevState, {data, props}) => {
 
-    const { mode, buffer, hlv, strengthIndex, } = prevState
+    const { mode, buffer, hlv, strengthIndex } = prevState
     const { contract, orderQuantity } = props
     
     buffer.push(data)        
@@ -10,22 +10,25 @@ const onChart = (prevState, {data, props}) => {
 
     const lastHlv = hlv.state
     const lastRsi = strengthIndex.state
-    const { variance } = hlv(lastHlv, buffData).state
-    const { overbought, oversold } = strengthIndex(lastRsi, buffData).state
 
-    const roundEps = num => Math.round((num + Number.EPSILON) * 100) / 100
+    const { variance } = hlv(lastHlv, buffData)
+    const { overbought, oversold } = strengthIndex(lastRsi, buffData)
+
+    const roundContract = (coeff, divisor) => {
+        return +(Math.round((coeff*variance/divisor)/contract.providerTickSize) / (1/contract.providerTickSize))
+    }
 
     const longBracket = {
         qty: orderQuantity,
-        profitTarget: roundEps(variance/1.33),
-        stopLoss: roundEps(-variance/5),
+        profitTarget: roundContract(1, 1.25),
+        stopLoss: roundContract(-1, 5),
         trailingStop: true
     }
       
     const shortBracket = {
         qty: orderQuantity,
-        profitTarget: roundEps(-variance/1.33),
-        stopLoss: roundEps(variance/5),
+        profitTarget: roundContract(-1, 1.25),
+        stopLoss: roundContract(1, 5),
         trailingStop: true
     }
 

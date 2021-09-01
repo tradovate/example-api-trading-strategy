@@ -15,6 +15,8 @@ const startOrderStrategy = (state, action) => {
             entryVersion,
             brackets
         }
+
+        console.log(JSON.stringify(orderData, null, 2))
         
         const body = {
             accountId: parseInt(process.env.ID, 10),
@@ -29,8 +31,8 @@ const startOrderStrategy = (state, action) => {
             url: 'orderStrategy/startOrderStrategy',
             body,
             callback: (id, r) => {
-                if(id === r.id) {
-                    console.log('Started order strategy...') 
+                if(id === r.i) {
+                    console.log(JSON.stringify(r, null, 2))
                     dispose()
                 }
             }

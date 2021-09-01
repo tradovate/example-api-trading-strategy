@@ -1,5 +1,5 @@
-const highLowVariance                   = require("../../indicators/highLowVariance");
-const relativeStrengthIndex             = require('../../indicators/rsi')
+const highLowVariance                   = require("../../utils/highLowVariance");
+const relativeStrengthIndex             = require('../../utils/rsi')
 
 const { DataBuffer, BarsTransformer }   = require("../../utils/dataBuffer");
 const { LongShortMode }                 = require("../common/longShortMode");
@@ -56,7 +56,7 @@ class RsiStrategy extends Strategy {
 
     static params = {
         ...super.params,
-        period:     'int',
+        period:         'int',
         orderQuantity:  'int',
     }
 }

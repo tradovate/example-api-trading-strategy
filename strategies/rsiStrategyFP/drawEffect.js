@@ -1,4 +1,4 @@
-const calculatePnL = require("../../utils/calculatePnL")
+const calculatePnL  = require("../../utils/calculatePnL")
 const drawToConsole = require("../../utils/drawToConsole")
 
 const drawEffect = (state, action) => {
@@ -13,8 +13,8 @@ const drawEffect = (state, action) => {
             mode,
             contract: contract.name,      
             netPos: position?.netPos || 0,
-            rsi: strengthIndex.state.rsi,
-            'p&l': position && position.netPos !== 0 && product 
+            rsi: strengthIndex.state.rsi || 0,
+            'p&l': position && position?.netPos !== 0 && product 
                 ? `$${
                     calculatePnL({
                         price: buffer.last()?.price || buffer.last()?.close || 0, 
@@ -25,7 +25,7 @@ const drawEffect = (state, action) => {
                 }` 
                 : '$0.00',
             realizedPnL: `$${realizedPnL.toFixed(2)}`
-        })    
+        }, false)    
     }
 
     return action

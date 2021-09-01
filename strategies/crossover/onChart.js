@@ -6,9 +6,13 @@ const onChart = (prevState, {data, props}) => {
     const { contract, orderQuantity } = props
     
     buffer.push(data)        
-    
-    const { variance } = hlv(hlv.state, buffer.getData()).state
-    const { negativeCrossover, positiveCrossover } = tlc(tlc.state, buffer.getData()).state
+    const bufferData = buffer.getData()
+
+    const lastHlv = hlv.state
+    const lastTlc = tlc.state
+
+    const { variance } = hlv(lastHlv, bufferData)
+    const { negativeCrossover, positiveCrossover } = tlc(lastTlc, bufferData)
 
     const round_s = num => Math.round((num + Number.EPSILON) * 100) / 100
 

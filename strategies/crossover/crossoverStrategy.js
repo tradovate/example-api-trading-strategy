@@ -1,5 +1,5 @@
-const highLowVariance = require("../../indicators/highLowVariance")
-const twoLineCrossover = require("../../indicators/twoLineCrossover")
+const highLowVariance = require("../../utils/highLowVariance")
+const twoLineCrossover = require("../../utils/twoLineCrossover")
 
 const { DataBuffer, BarsTransformer } = require("../../utils/dataBuffer")
 const { Strategy } = require("../strategy/strategy")

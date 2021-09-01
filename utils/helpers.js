@@ -49,7 +49,6 @@ const writeToLog = item => {
 
     
 }
-
 const KEYS = {
     ctrlC:  '03',
     enter:  '0d',
