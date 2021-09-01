@@ -1,11 +1,11 @@
+const { roundTicks } = require("../../utils/roundTicks")
 const { LongShortMode } = require("../common/longShortMode")
 
 const onChart = (prevState, {data, props}) => {
 
     const { mode, buffer, hlv, strengthIndex } = prevState
     const { contract, orderQuantity } = props
-    
-    buffer.push(data)        
+           
     const buffData = buffer.getData()
 
     const lastHlv = hlv.state
@@ -14,21 +14,18 @@ const onChart = (prevState, {data, props}) => {
     const { variance } = hlv(lastHlv, buffData)
     const { overbought, oversold } = strengthIndex(lastRsi, buffData)
 
-    const roundContract = (coeff, divisor) => {
-        return +(Math.round((coeff*variance/divisor)/contract.providerTickSize) / (1/contract.providerTickSize))
-    }
 
     const longBracket = {
         qty: orderQuantity,
-        profitTarget: roundContract(1, 1.25),
-        stopLoss: roundContract(-1, 5),
+        profitTarget: roundTicks(1, 1.25, contract, variance),
+        stopLoss: roundTicks(-1, 5, contract, variance),
         trailingStop: true
     }
       
     const shortBracket = {
         qty: orderQuantity,
-        profitTarget: roundContract(-1, 1.25),
-        stopLoss: roundContract(1, 5),
+        profitTarget: roundTicks(-1, 1.25, contract, variance),
+        stopLoss: roundTicks(1, 5, contract, variance),
         trailingStop: true
     }
 
@@ -42,6 +39,7 @@ const onChart = (prevState, {data, props}) => {
             state: {
                 ...prevState,
                 mode: LongShortMode.Short,
+                buffer: buffer.concat(data)
             },
             effects: [
                 {
@@ -63,6 +61,7 @@ const onChart = (prevState, {data, props}) => {
             state: {
                 ...prevState,
                 mode: LongShortMode.Long,
+                buffer: buffer.concat(data)
             },
             effects: [
                 {
@@ -81,6 +80,7 @@ const onChart = (prevState, {data, props}) => {
 
     return { 
         state: prevState,
+        buffer: buffer.concat(data),
         effects: [{ event: 'rsi/draw' }]
     }
 }

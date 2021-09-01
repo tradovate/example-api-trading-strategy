@@ -25,7 +25,7 @@ const drawEffect = (state, action) => {
                 }` 
                 : '$0.00',
             realizedPnL: `$${realizedPnL.toFixed(2)}`
-        }, false)    
+        })    
     }
 
     return action

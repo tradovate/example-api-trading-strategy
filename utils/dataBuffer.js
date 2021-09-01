@@ -4,8 +4,8 @@
  * is provided, keeps raw data.
  * @param {*} param0 
  */
-function DataBuffer(transformer = null) {
-    const buffer = []
+function DataBuffer(transformer = null, data = []) {
+    this.buffer = [...data]
 
     this.push = tick => {
         let results
@@ -19,34 +19,45 @@ function DataBuffer(transformer = null) {
 
             if(this.last() 
             && this.last().timestamp.getTime() === result.timestamp.getTime()) {
-                buffer.pop()            
+                this.buffer.pop()            
             }
 
-            buffer.push(result)
+            this.buffer.push(result)
         })
     }
 
-    this.getData    = (i = -1) => i > -1 ? buffer[i] : buffer
+    this.softPush = item => {
+        this.buffer.push(item)
+    }
 
-    this.forEach    = callback => buffer.forEach(callback)
+    this.concat     = (tick) => {
+        this.push(tick)
+        let db = new DataBuffer(transformer, this.buffer)
+        console.log(db.getData())
+        return db
+    }
 
-    this.map        = callback => buffer.map(callback)
+    this.getData    = (i = -1) => i > -1 ? this.buffer[i] : this.buffer
 
-    this.reduce     = (callback, seed) => buffer.reduce(callback, seed)
+    this.forEach    = callback => this.buffer.forEach(callback)
 
-    this.slice      = (start, end) => buffer.slice(start, end)
+    this.map        = callback => this.buffer.map(callback)
 
-    this.indexOf    = item => buffer.indexOf(item)
+    this.reduce     = (callback, seed) => this.buffer.reduce(callback, seed)
 
-    this.every      = predicate => buffer.every(predicate)
+    this.slice      = (start, end) => this.buffer.slice(start, end)
 
-    this.filter     = predicate => buffer.filter(predicate)
+    this.indexOf    = item => this.buffer.indexOf(item)
 
-    this.some       = predicate => buffer.some(predicate)
+    this.every      = predicate => this.buffer.every(predicate)
 
-    this.find       = predicate => buffer.find(predicate)
+    this.filter     = predicate => this.buffer.filter(predicate)
 
-    this.last       = () => buffer[buffer.length - 1]
+    this.some       = predicate => this.buffer.some(predicate)
+
+    this.find       = predicate => this.buffer.find(predicate)
+
+    this.last       = () => this.buffer[this.buffer.length - 1]
 }
 
 Object.defineProperty(DataBuffer.prototype, 'length', {

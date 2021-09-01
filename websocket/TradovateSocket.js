@@ -30,10 +30,6 @@ TradovateSocket.prototype.getSocket = function() {
 TradovateSocket.prototype.request = function({url, query, body, callback, disposer}) {
     const id = this.counter.increment()
 
-    // console.log('request:')
-    // console.log({url, query, body, callback, disposer, id})
-    // console.log('')
-
     const resSubscription = msg => {
 
         if(msg.data.slice(0, 1) !== 'a') { return }
@@ -53,8 +49,7 @@ TradovateSocket.prototype.request = function({url, query, body, callback, dispos
             })
         }
     } 
-    // console.log(ws.listeners('message'))
-    // console.log(ws.listeners('close'))
+
     this.ws.addEventListener('message', resSubscription)
     this.ws.send(`${url}\n${id}\n${query}\n${JSON.stringify(body)}`)
 
@@ -75,7 +70,6 @@ TradovateSocket.prototype.synchronize = function(callback) {
         url: 'user/syncrequest',
         body: { accounts: [parseInt(process.env.ID, 10)] },
         callback: (id, data) => { 
-            // console.log(data)
             if(data.i === id
             || (data.e && data.e === 'props')
             || (data.e && data.e === 'clock')) {
@@ -140,17 +134,6 @@ TradovateSocket.prototype.connect = async function(url) {
                 return
             }
 
-            // console.log(msg)
-            
-            // if(data.length > 1) {
-            //     let json = JSON.parse(data.slice(1))
-            //     json.forEach(d => {
-            //         if(d.e !== 'chart') {
-            //             console.log(d)
-            //         }
-            //     })
-            // }
-        
             //message discriminator
             switch(kind) {
                 case 'o':      
@@ -162,19 +145,13 @@ TradovateSocket.prototype.connect = async function(url) {
                             clearInterval(interval)
                             return
                         }
-                        // console.log('sending response heartbeat...')
                         this.ws.send('[]')
                     }, 2500)
                     break
                 case 'h':
-                    // console.log('receieved server heartbeat...')
                     break
                 case 'a':
                     const parsedData = JSON.parse(msg.data.slice(1))
-
-                    // console.log('response')
-                    // console.log(JSON.stringify(parsedData, null, 2))
-                    // console.log('')
 
                     const [first] = parsedData
                     if(first.i === 0 && first.s === 200) {
@@ -182,7 +159,6 @@ TradovateSocket.prototype.connect = async function(url) {
                     } else rej()
                     break
                 case 'c':
-                    console.log('closing websocket')
                     clearInterval(interval)
                     break
                 default:

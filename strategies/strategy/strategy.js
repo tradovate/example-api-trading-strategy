@@ -47,12 +47,9 @@ class Strategy {
         props.dispatcher = D //add dispatcher to 'props' dependencies object.
 
         this._runSideFx = () => {
-            // console.log(D)
             let effects = D.effects()
             
             if(effects && effects.length && effects.length > 0) {
-                console.log('effects: ')
-                console.log(JSON.stringify(effects, null, 2))
                 effects.forEach(fx => {
                     if(fx.url) {
                         D.dispatch(fx.url, {data: fx.data, props})
@@ -83,7 +80,6 @@ class Strategy {
                                         if(id === item.i) {
                                             const accounts = item.d
                                             const account = accounts.find(acct => acct.active)
-                                            console.log(account)
                                             
                                             process.env.ACCOUNT = JSON.stringify(account)
                                             process.env.ID = account.id,
@@ -95,7 +91,6 @@ class Strategy {
                                             disposerA()
                                             disposerB()
                                             disposerC()
-                                            // console.log(socket.ws.listeners())
                                         }
                                     }
                                 })
@@ -218,7 +213,6 @@ class Strategy {
     catchReplaySessionsDefault(prevState, [event, { data, props }]) {
 
         if(event === 'stop') {
-            console.log('[CALLED STOP]')
             // const socket = getReplaySocket()
             // const ws = socket.getSocket()
             // ws.close()
@@ -229,15 +223,11 @@ class Strategy {
 
         if(event === TdEvent.ReplayReset) {
             const replaySocket = getReplaySocket()
-            console.log(replaySocket)
-            console.log('[CALLED RESET HANDLERS]')
             this._setupEventCatcher(replaySocket, replaySocket)
             return { state: prevState }
         }
 
         if(event === TdEvent.Clock) {
-
-            console.log(data)
 
             const { current_period } = prevState
             const { replay_periods } = props
@@ -247,7 +237,6 @@ class Strategy {
             const curStop = new Date(replay_periods[current_period]?.stop)?.toJSON()
 
             if(curStop && new Date(t).getTime() > new Date(curStop).getTime()) {
-                console.log('[TRIED NEXT REPLAY]')
                 return { 
                     state: { ...prevState, current_period: current_period+1 },
                     effects: [{ event: TdEvent.NextReplay, data: { props } }]
