@@ -33,7 +33,6 @@ function DataBuffer(transformer = null, data = []) {
     this.concat     = (tick) => {
         this.push(tick)
         let db = new DataBuffer(transformer, this.buffer)
-        console.log(db.getData())
         return db
     }
 
