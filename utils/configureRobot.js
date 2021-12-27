@@ -1,4 +1,6 @@
+const { getReplaySocket, getSocket, getMdSocket } = require("../websocket/utils")
 const { askForContract } = require("./askForContract")
+const { askForReplay } = require("./askForReplay")
 const { askQuestion } = require("./askQuestion")
 const { confirm } = require("./confirm")
 const { pressEnterToContinue } = require("./enterToContinue")
@@ -6,6 +8,21 @@ const { pressEnterToContinue } = require("./enterToContinue")
 const configureRobot = async (ALL_STRATEGIES, REPLAY_TIMES) => {
 
     console.clear()    
+
+    const maybeReplayString = await askForReplay(REPLAY_TIMES)
+
+    if(maybeReplayString) {
+        const replaySocket = getReplaySocket()
+        await replaySocket.connect(process.env.REPLAY_URL)
+    } else {
+        const socket = getSocket()
+        const mdSocket = getMdSocket()
+
+        await Promise.all([
+            socket.connect(process.env.WS_URL),
+            mdSocket.connect(process.env.MD_URL)
+        ])
+    }
     
     let contract = await askForContract()
 
@@ -61,7 +78,7 @@ const configureRobot = async (ALL_STRATEGIES, REPLAY_TIMES) => {
     } 
 
     const params = await getParams()
-    params.dev_mode = !!REPLAY_TIMES[0] 
+    params.dev_mode = maybeReplayString
     params.replay_periods = REPLAY_TIMES
     console.log(params)
     const concreteStrategy = new StrategyType(params)

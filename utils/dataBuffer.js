@@ -1,12 +1,11 @@
-
 /**
  * The DataBuffer tracks and transforms incoming tick data based on the `transformer` provided. If no transformer
  * is provided, keeps raw data.
  * @param {*} param0 
  */
-function DataBuffer(transformer = null, data = []) {
+ function DataBuffer(transformer = null, data = []) {
     this.buffer = [...data]
-
+    let lastTs
     this.push = tick => {
         let results
         if(transformer && typeof transformer === 'function') {
@@ -14,27 +13,36 @@ function DataBuffer(transformer = null, data = []) {
         } else {
             results = tick
         }
+
+        results = results.sort((a, b) => a.timestamp - b.timestamp)
         
         results.forEach(result => {
-
-            if(this.last() 
-            && this.last().timestamp.getTime() === result.timestamp.getTime()) {
-                this.buffer.pop()            
+            if(this.buffer.length === 0 || result.timestamp > lastTs) {
+                this.buffer.push(result)
+                if(this.maxLength && this.buffer.length > this.maxLength) {
+                    this.buffer.shift()
+                }
+                lastTs = result.timestamp
+            } else if(result.timestamp === lastTs) {
+                this.buffer[this.buffer.length-1] = {...result}
             }
-
-            this.buffer.push(result)
         })
+    }
+
+    this.setMaxLength = max => {
+        this.maxLength = max
     }
 
     this.softPush = item => {
         this.buffer.push(item)
     }
 
-    this.concat     = (tick) => {
+    this.concat = (tick) => {
         this.push(tick)
-        let db = new DataBuffer(transformer, this.buffer)
-        return db
+        return this
     }
+
+    this.slicePeriod = period => period === null ? this.buffer.slice() : this.buffer.slice(this.buffer.length - (period))
 
     this.getData    = (i = -1) => i > -1 ? this.buffer[i] : this.buffer
 
@@ -56,7 +64,7 @@ function DataBuffer(transformer = null, data = []) {
 
     this.find       = predicate => this.buffer.find(predicate)
 
-    this.last       = () => this.buffer[this.buffer.length - 1]
+    this.last       = (i = 0) => this.buffer[this.buffer.length - (1+i)]
 }
 
 Object.defineProperty(DataBuffer.prototype, 'length', {
@@ -75,10 +83,12 @@ const BarsTransformer = (response) => {
     let results = []
     if(bars) {
         bars.forEach(bar => {
-            let result = { ...bar, timestamp: new Date(bar.timestamp), price: bar.close }
+            let result = bar
             results.push(result)
         })
     }
+    // console.log('BAR XFORM RESULT')
+    // console.log(results)
     return results
 }
 
