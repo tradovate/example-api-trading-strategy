@@ -6,6 +6,7 @@ const onChart = (prevState, {data, props}) => {
     const { mode, buffer, hlv, strengthIndex } = prevState
     const { contract, orderQuantity } = props
            
+    buffer.push(data)
     const buffData = buffer.getData()
 
     const lastHlv = hlv.state
@@ -39,7 +40,7 @@ const onChart = (prevState, {data, props}) => {
             state: {
                 ...prevState,
                 mode: LongShortMode.Short,
-                buffer: buffer.concat(data)
+                // buffer: buffer.concat(data)
             },
             effects: [
                 {
@@ -61,7 +62,7 @@ const onChart = (prevState, {data, props}) => {
             state: {
                 ...prevState,
                 mode: LongShortMode.Long,
-                buffer: buffer.concat(data)
+                // buffer: buffer.concat(data)
             },
             effects: [
                 {
@@ -78,11 +79,7 @@ const onChart = (prevState, {data, props}) => {
         }
     }
 
-    return { 
-        state: prevState,
-        buffer: buffer.concat(data),
-        effects: [{ event: 'rsi/draw' }]
-    }
+    return { state: prevState }
 }
 
 module.exports = { onChart }

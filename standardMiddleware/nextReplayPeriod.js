@@ -13,6 +13,7 @@ const nextReplayPeriod = (state, action) => {
         let modified_period = current_period - 1
         if(modified_period - 1 < replay_periods.length){
             const sessionResults = getSessionResults()
+            //set results of this session
             sessionResults[`${replay_periods[modified_period].start} to ${replay_periods[modified_period].stop}`] = {
                 finalPos: position?.netPos || 0,
                 bought: position?.bought || 0,
@@ -33,9 +34,6 @@ const nextReplayPeriod = (state, action) => {
             return action
         } else {
             console.log('[TRIED RESET REPLAY]')
-
-            
-
 
             const socket = getReplaySocket()
 

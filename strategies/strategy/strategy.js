@@ -223,7 +223,7 @@ class Strategy {
 
         if(event === TdEvent.ReplayReset) {
             const replaySocket = getReplaySocket()
-            this._setupEventCatcher(replaySocket, replaySocket)
+            this._setupEventCatcher(props.dispatcher, replaySocket, replaySocket, props)
             return { state: prevState }
         }
 
@@ -236,7 +236,7 @@ class Strategy {
 
             const curStop = new Date(replay_periods[current_period]?.stop)?.toJSON()
 
-            if(curStop && new Date(t).getTime() > new Date(curStop).getTime()) {
+            if(curStop && new Date(t) > new Date(curStop)) {
                 return { 
                     state: { ...prevState, current_period: current_period+1 },
                     effects: [{ event: TdEvent.NextReplay, data: { props } }]

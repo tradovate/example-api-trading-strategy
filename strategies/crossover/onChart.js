@@ -71,7 +71,8 @@ const onChart = (prevState, {data, props}) => {
                         brackets: [longBracket],
                         entryVersion
                     }
-                }
+                },
+                { event: 'crossover/draw' }
             ]
         }
     }

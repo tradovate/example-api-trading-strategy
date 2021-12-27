@@ -38,9 +38,6 @@ class CrossoverStrategy extends Strategy {
     
     next(prevState, [event, payload]) {
 
-        // console.log('[NEXT]')
-        // console.log(JSON.stringify(prevState, null, 2))
-
         switch(event) {
             case TdEvent.Chart: {
                 return onChart(prevState, payload)  
@@ -55,7 +52,7 @@ class CrossoverStrategy extends Strategy {
             }
 
             case TdEvent.ProductFound: {
-                return onProductFound(prevState, payload)
+                return onProductFound('crossover', prevState, payload)
             }
 
             case TdEvent.ReplayComplete: {

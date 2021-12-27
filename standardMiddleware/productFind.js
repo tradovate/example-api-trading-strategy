@@ -16,7 +16,6 @@ const productFind = (state, action) => {
             callback: (id, r) => {
                 if(r.i === id) { 
                     console.log(r)
-                    console.log('IN PRODUCT CALLBACK')
                     dispatcher.dispatch('product/found', { data: { entity: r.d }, props })
                     dispose()
                 }

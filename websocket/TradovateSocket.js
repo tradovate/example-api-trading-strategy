@@ -141,7 +141,7 @@ TradovateSocket.prototype.connect = async function(url) {
                     const token = this.constructor.name === 'TradovateSocket' ? process.env.ACCESS_TOKEN : process.env.MD_ACCESS_TOKEN
                     this.ws.send(`authorize\n0\n\n${token}`)          
                     interval = setInterval(() => {
-                        if(this.ws.readyState == 3 || this.ws.readyState == 2) {
+                        if(this.ws.readyState == 0 || this.ws.readyState == 3 || this.ws.readyState == 2) {
                             clearInterval(interval)
                             return
                         }

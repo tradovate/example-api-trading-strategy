@@ -10,6 +10,7 @@ const { drawEffect }                    = require("./drawEffect");
 const { onChart }                       = require("./onChart");
 const { onProps }                       = require("./onProps");
 const { onUserSync }                    = require("./onUserSync");
+const { onReplayComplete } = require("../common/onReplayComplete");
 
 
 class RsiStrategy extends Strategy {
@@ -45,11 +46,20 @@ class RsiStrategy extends Strategy {
             }
 
             case TdEvent.ProductFound: {
-                return onProductFound(prevState, payload)
+                return onProductFound('rsi', prevState, payload)
+            }
+
+            case TdEvent.ReplayComplete: {
+                return onReplayComplete(prevState, payload)
             }
 
             default: {
-                return { state: prevState }
+                return this.catchReplaySessionsDefault(prevState, [event, payload]) || { 
+                    state: prevState,
+                    effects: [
+                        { event: 'rsi/draw' }          
+                    ]
+                }       
             }
         }
     }
