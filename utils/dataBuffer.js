@@ -99,7 +99,6 @@ const BarsTransformer = (response) => {
  * @returns {Array<{subscriptionId:number, id: number, contractTickSize: number, timestamp: Date, price: number, volume: number, bidPrice: number, bidSize: number, askPrice: number, askSize: number}>}
  */
 const TicksTransformer = response => {
-    console.log(response)
     const {id: subId, bp, bt, ts, tks} = response
     let result = []
     if(tks) { 

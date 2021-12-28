@@ -3,7 +3,7 @@ module.exports = function relativeStrengthIndex(period) {
         
         const pts = data.slice(data.length - period)
 
-        const changes   = pts.map((x, i, arr) => i === 0 ? 0 : x.close - arr[i-1].close)
+        const changes   = pts.map((x, i, arr) => i === 0 ? 0 : (x.close || x.price) - (arr[i-1].close || arr[i-1].price))
         const ups       = changes.filter(x => x > 0).reduce((a, b) => a + b, 0)
         const downs     = changes.filter(x => x < 0).reduce((a, b) => a + b, 0)
 
