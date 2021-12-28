@@ -1,4 +1,4 @@
-const { DataBuffer, BarsTransformer } = require("../../utils/dataBuffer");
+const { DataBuffer, BarsTransformer, TicksTransformer } = require("../../utils/dataBuffer");
 const { Strategy } = require("../strategy/strategy");
 const { TdEvent } = require("../strategy/tdEvent");
 const { drawPriceEffect } = require("./drawPrice");
@@ -6,9 +6,10 @@ const { drawPriceEffect } = require("./drawPrice");
 class PriceDisplayStrategyFP extends Strategy {
 
     init(props) {
+        const { barType } = props 
         this.addMiddleware(drawPriceEffect)
         return {
-            buffer: new DataBuffer(BarsTransformer),
+            buffer: new DataBuffer(barType === 'Bars' ? BarsTransformer : TicksTransformer),
         }
     }
 

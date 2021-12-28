@@ -1,7 +1,7 @@
 const highLowVariance                   = require("../../utils/highLowVariance");
 const relativeStrengthIndex             = require('../../utils/rsi')
 
-const { DataBuffer, BarsTransformer }   = require("../../utils/dataBuffer");
+const { DataBuffer, BarsTransformer, TicksTransformer }   = require("../../utils/dataBuffer");
 const { LongShortMode }                 = require("../common/longShortMode");
 const { onProductFound }                = require("../common/onProductFound");
 const { Strategy }                      = require("../strategy/strategy");
@@ -19,6 +19,7 @@ class RsiStrategy extends Strategy {
     }
 
     init(props) {
+        const { barType } = props
         this.addMiddleware(drawEffect)
         return {
             mode:           LongShortMode.Watch,
@@ -27,7 +28,7 @@ class RsiStrategy extends Strategy {
             product:        null,
             position:       null,
             realizedPnL:    0,
-            buffer:         new DataBuffer(BarsTransformer)
+            buffer:         new DataBuffer(barType === 'Bars' ? BarsTransformer : TicksTransformer)
         }
     }
 

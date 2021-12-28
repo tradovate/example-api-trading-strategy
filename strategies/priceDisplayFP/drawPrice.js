@@ -8,9 +8,11 @@ const drawPriceEffect = (state, action) => {
         const { contract } = props
         const { buffer } = state  
 
+        console.log(buffer.buffer)
+
         drawToConsole({
             contract: contract.name,
-            price: buffer.last().close
+            price: buffer.last()?.close || buffer.last()?.price
         })    
     }
 
