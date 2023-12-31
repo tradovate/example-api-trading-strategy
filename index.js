@@ -39,16 +39,16 @@ const ALL_STRATEGIES = {
 }
 
 //Replay times must be JSON strings!
-const REPLAY_TIMES = [
-    {
-        start: new Date(`2021-07-28T22:30`).toJSON(), //use your local time, .toJSON will transform it to universal
-        stop: new Date(`2021-07-28T22:31`).toJSON()
-    },
-    {
-        start: new Date(`2021-07-28T22:31`).toJSON(),
-        stop: new Date(`2021-07-28T22:32`).toJSON(),
-    }
-]
+//const REPLAY_TIMES = [
+    //{
+        //start: new Date(`2021-07-28T22:30`).toJSON(), //use your local time, .toJSON will transform it to universal
+        //stop: new Date(`2021-07-28T22:31`).toJSON()
+    //},
+    //{
+        //start: new Date(`2021-07-28T22:31`).toJSON(),
+        //stop: new Date(`2021-07-28T22:32`).toJSON(),
+    //}
+//]
 
 /**
  * Program entry point.
@@ -65,12 +65,12 @@ async function main() {
     // Configuration Section                     //
     // // // // // // // // // // // // // // // //
 
-    const maybeReplayString = await askForReplay(REPLAY_TIMES)
+    //const maybeReplayString = await askForReplay(REPLAY_TIMES)
 
-    if(maybeReplayString) {
-        const replaySocket = getReplaySocket()
-        await replaySocket.connect(process.env.REPLAY_URL)
-    } else {
+    //if(maybeReplayString) {
+        //const replaySocket = getReplaySocket()
+        //await replaySocket.connect(process.env.REPLAY_URL)
+    //} else {
         const socket = getSocket()
         const mdSocket = getMdSocket()
 
@@ -78,9 +78,10 @@ async function main() {
             socket.connect(process.env.WS_URL),
             mdSocket.connect(process.env.MD_URL)
         ])
-    }
+    //}
     
-    const Strategy = await configureRobot(ALL_STRATEGIES, REPLAY_TIMES)
+    const Strategy = await configureRobot(ALL_STRATEGIES)
+    Strategy.init()
     
     //COMMENT ABOVE, UNCOMMENT BELOW you want to parameterize the strategy here instead of via console.
     
